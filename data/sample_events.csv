@@ -1,0 +1,155 @@
+id,title,category,start_time,end_time,duration_minutes,date
+1,Gym - Chest & Triceps,Gym,07:00,08:30,90,2026-01-05
+2,Data Structures,Academics,10:00,11:30,90,2026-01-05
+3,Gym - Back & Biceps,Gym,07:00,08:30,90,2026-01-06
+4,Web Development,Academics,09:00,10:30,90,2026-01-06
+5,Football Practice,Sports,18:00,20:00,120,2026-01-06
+6,Cook Dinner,Cooking,20:30,21:30,60,2026-01-06
+7,Gym - Leg Day,Gym,07:00,08:30,90,2026-01-07
+8,Data Structures,Academics,10:00,11:30,90,2026-01-07
+9,Gym - Shoulders & Arms,Gym,07:00,08:30,90,2026-01-08
+10,Web Development,Academics,09:00,10:30,90,2026-01-08
+11,Football Practice,Sports,18:00,20:00,120,2026-01-08
+12,Gym - Core & Cardio,Gym,07:00,08:00,60,2026-01-09
+13,Python Programming,Academics,14:00,15:30,90,2026-01-09
+14,Movie Night,Recreation,20:00,22:00,120,2026-01-09
+15,Football Match,Sports,15:00,17:00,120,2026-01-10
+16,Gaming Session,Recreation,20:00,22:30,150,2026-01-10
+17,Meal Prep,Cooking,17:00,18:30,90,2026-01-11
+18,Gym - Chest & Triceps,Gym,07:00,08:30,90,2026-01-12
+19,Data Structures,Academics,10:00,11:30,90,2026-01-12
+20,Gym - Back & Biceps,Gym,07:00,08:30,90,2026-01-13
+21,Web Development,Academics,09:00,10:30,90,2026-01-13
+22,Football Practice,Sports,18:00,20:00,120,2026-01-13
+23,Gym - Leg Day,Gym,07:00,08:30,90,2026-01-14
+24,Data Structures,Academics,10:00,11:30,90,2026-01-14
+25,Cook Dinner,Cooking,19:00,20:00,60,2026-01-14
+26,Gym - Shoulders & Arms,Gym,07:00,08:30,90,2026-01-15
+27,Web Development,Academics,09:00,10:30,90,2026-01-15
+28,Football Practice,Sports,18:00,20:00,120,2026-01-15
+29,Gym - Core & Cardio,Gym,07:00,08:00,60,2026-01-16
+30,Python Programming,Academics,14:00,15:30,90,2026-01-16
+31,Reading Session,Recreation,21:00,22:00,60,2026-01-16
+32,Football Match,Sports,15:00,17:00,120,2026-01-17
+33,Movie Night,Recreation,20:00,22:00,120,2026-01-17
+34,Hiking,Recreation,10:00,13:00,180,2026-01-18
+35,Gym - Chest & Triceps,Gym,07:00,08:30,90,2026-01-19
+36,Data Structures,Academics,10:00,11:30,90,2026-01-19
+37,Cook Dinner,Cooking,19:00,20:00,60,2026-01-19
+38,Gym - Back & Biceps,Gym,07:00,08:30,90,2026-01-20
+39,Web Development,Academics,09:00,10:30,90,2026-01-20
+40,Football Practice,Sports,18:00,20:00,120,2026-01-20
+41,Gym - Leg Day,Gym,07:00,08:30,90,2026-01-21
+42,Data Structures,Academics,10:00,11:30,90,2026-01-21
+43,Gaming Session,Recreation,20:00,22:00,120,2026-01-21
+44,Gym - Shoulders & Arms,Gym,07:00,08:30,90,2026-01-22
+45,Web Development,Academics,09:00,10:30,90,2026-01-22
+46,Football Practice,Sports,18:00,20:00,120,2026-01-22
+47,Gym - Core & Cardio,Gym,07:00,08:00,60,2026-01-23
+48,Python Programming,Academics,14:00,15:30,90,2026-01-23
+49,Coffee with Friends,Recreation,16:00,17:30,90,2026-01-23
+50,Football Match,Sports,15:00,17:00,120,2026-01-24
+51,Grocery Shopping,Recreation,11:00,12:00,60,2026-01-24
+52,Meal Prep,Cooking,17:00,18:30,90,2026-01-25
+53,Gym - Chest & Triceps,Gym,07:00,08:30,90,2026-01-26
+54,Data Structures,Academics,10:00,11:30,90,2026-01-26
+55,Gym - Back & Biceps,Gym,07:00,08:30,90,2026-01-27
+56,Web Development,Academics,09:00,10:30,90,2026-01-27
+57,Football Practice,Sports,18:00,20:00,120,2026-01-27
+58,Cook Dinner,Cooking,20:30,21:30,60,2026-01-27
+59,Gym - Leg Day,Gym,07:00,08:30,90,2026-01-28
+60,Data Structures,Academics,10:00,11:30,90,2026-01-28
+61,Gym - Shoulders & Arms,Gym,07:00,08:30,90,2026-01-29
+62,Web Development,Academics,09:00,10:30,90,2026-01-29
+63,Football Practice,Sports,18:00,20:00,120,2026-01-29
+64,Gym - Core & Cardio,Gym,07:00,08:00,60,2026-01-30
+65,Python Programming,Academics,14:00,15:30,90,2026-01-30
+66,Movie Night,Recreation,20:00,22:00,120,2026-01-30
+67,Football Match,Sports,15:00,17:00,120,2026-01-31
+68,Hiking,Recreation,11:00,13:30,150,2026-02-01
+69,Gym - Chest & Triceps,Gym,07:00,08:30,90,2026-02-02
+70,Data Structures,Academics,10:00,11:30,90,2026-02-02
+71,Cook Dinner,Cooking,19:00,20:00,60,2026-02-02
+72,Gym - Back & Biceps,Gym,07:00,08:30,90,2026-02-03
+73,Web Development,Academics,09:00,10:30,90,2026-02-03
+74,Football Practice,Sports,18:00,20:00,120,2026-02-03
+75,Gym - Leg Day,Gym,07:00,08:30,90,2026-02-04
+76,Data Structures,Academics,10:00,11:30,90,2026-02-04
+77,Gaming Session,Recreation,20:00,22:30,150,2026-02-04
+78,Gym - Shoulders & Arms,Gym,07:00,08:30,90,2026-02-05
+79,Web Development,Academics,09:00,10:30,90,2026-02-05
+80,Football Practice,Sports,18:00,20:00,120,2026-02-05
+81,Gym - Core & Cardio,Gym,07:00,08:00,60,2026-02-06
+82,Python Programming,Academics,14:00,15:30,90,2026-02-06
+83,Cook Dinner,Cooking,19:00,20:00,60,2026-02-06
+84,Football Match,Sports,15:00,17:00,120,2026-02-07
+85,Coffee with Friends,Recreation,12:00,13:30,90,2026-02-07
+86,Meal Prep,Cooking,17:00,18:30,90,2026-02-08
+87,Gym - Chest & Triceps,Gym,07:00,08:30,90,2026-02-09
+88,Data Structures,Academics,10:00,11:30,90,2026-02-09
+89,Gym - Back & Biceps,Gym,07:00,08:30,90,2026-02-10
+90,Web Development,Academics,09:00,10:30,90,2026-02-10
+91,Football Practice,Sports,18:00,20:00,120,2026-02-10
+92,Cook Dinner,Cooking,20:30,21:30,60,2026-02-10
+93,Gym - Leg Day,Gym,07:00,08:30,90,2026-02-11
+94,Data Structures,Academics,10:00,11:30,90,2026-02-11
+95,Movie Night,Recreation,20:00,22:00,120,2026-02-11
+96,Gym - Shoulders & Arms,Gym,07:00,08:30,90,2026-02-12
+97,Web Development,Academics,09:00,10:30,90,2026-02-12
+98,Football Practice,Sports,18:00,20:00,120,2026-02-12
+99,Gym - Core & Cardio,Gym,07:00,08:00,60,2026-02-13
+100,Python Programming,Academics,14:00,15:30,90,2026-02-13
+101,Football Match,Sports,15:00,17:00,120,2026-02-14
+102,Movie Night,Recreation,20:00,22:00,120,2026-02-14
+103,Hiking,Recreation,10:00,13:00,180,2026-02-15
+104,Gym - Chest & Triceps,Gym,07:00,08:30,90,2026-02-16
+105,Data Structures,Academics,10:00,11:30,90,2026-02-16
+106,Cook Dinner,Cooking,19:00,20:00,60,2026-02-16
+107,Gym - Back & Biceps,Gym,07:00,08:30,90,2026-02-17
+108,Web Development,Academics,09:00,10:30,90,2026-02-17
+109,Football Practice,Sports,18:00,20:00,120,2026-02-17
+110,Gym - Leg Day,Gym,07:00,08:30,90,2026-02-18
+111,Data Structures,Academics,10:00,11:30,90,2026-02-18
+112,Gaming Session,Recreation,20:00,22:00,120,2026-02-18
+113,Gym - Shoulders & Arms,Gym,07:00,08:30,90,2026-02-19
+114,Web Development,Academics,09:00,10:30,90,2026-02-19
+115,Football Practice,Sports,18:00,20:00,120,2026-02-19
+116,Gym - Core & Cardio,Gym,07:00,08:00,60,2026-02-20
+117,Python Programming,Academics,14:00,15:30,90,2026-02-20
+118,Football Match,Sports,15:00,17:00,120,2026-02-21
+119,Grocery Shopping,Recreation,11:00,12:00,60,2026-02-21
+120,Meal Prep,Cooking,17:00,18:30,90,2026-02-22
+121,Gym - Chest & Triceps,Gym,07:00,08:30,90,2026-02-23
+122,Data Structures,Academics,10:00,11:30,90,2026-02-23
+123,Gym - Back & Biceps,Gym,07:00,08:30,90,2026-02-24
+124,Web Development,Academics,09:00,10:30,90,2026-02-24
+125,Football Practice,Sports,18:00,20:00,120,2026-02-24
+126,Cook Dinner,Cooking,20:30,21:30,60,2026-02-24
+127,Gym - Leg Day,Gym,07:00,08:30,90,2026-02-25
+128,Data Structures,Academics,10:00,11:30,90,2026-02-25
+129,Gym - Shoulders & Arms,Gym,07:00,08:30,90,2026-02-26
+130,Web Development,Academics,09:00,10:30,90,2026-02-26
+131,Football Practice,Sports,18:00,20:00,120,2026-02-26
+132,Gym - Core & Cardio,Gym,07:00,08:00,60,2026-02-27
+133,Python Programming,Academics,14:00,15:30,90,2026-02-27
+134,Movie Night,Recreation,20:00,22:00,120,2026-02-27
+135,Football Match,Sports,15:00,17:00,120,2026-02-28
+136,Hiking,Recreation,11:00,14:00,180,2026-03-01
+137,Gym - Chest & Triceps,Gym,07:00,08:30,90,2026-03-02
+138,Data Structures,Academics,10:00,11:30,90,2026-03-02
+139,Cook Dinner,Cooking,19:00,20:00,60,2026-03-02
+140,Gym - Back & Biceps,Gym,07:00,08:30,90,2026-03-03
+141,Web Development,Academics,09:00,10:30,90,2026-03-03
+142,Football Practice,Sports,18:00,20:00,120,2026-03-03
+143,Gym - Leg Day,Gym,07:00,08:30,90,2026-03-04
+144,Data Structures,Academics,10:00,11:30,90,2026-03-04
+145,Gaming Session,Recreation,20:00,22:30,150,2026-03-04
+146,Gym - Shoulders & Arms,Gym,07:00,08:30,90,2026-03-05
+147,Web Development,Academics,09:00,10:30,90,2026-03-05
+148,Football Practice,Sports,18:00,20:00,120,2026-03-05
+149,Gym - Core & Cardio,Gym,07:00,08:00,60,2026-03-06
+150,Python Programming,Academics,14:00,15:30,90,2026-03-06
+151,Coffee with Friends,Recreation,16:00,17:30,90,2026-03-06
+152,Football Match,Sports,15:00,17:00,120,2026-03-07
+153,Movie Night,Recreation,20:00,22:00,120,2026-03-07
+154,Meal Prep,Cooking,17:00,18:30,90,2026-03-08
