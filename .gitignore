@@ -6,3 +6,5 @@ __pycache__/
 output/
 *.egg-info/
 .env
+frontend/node_modules/
+frontend/dist/
