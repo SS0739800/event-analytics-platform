@@ -4,7 +4,7 @@ import pandas as pd
 class TimeStats:
     def __init__(self, df: pd.DataFrame):
         self.df = df.copy()
-        self.df["hour"] = pd.to_datetime(self.df["start_time"], format="%H:%M").dt.hour
+        self.df["hour"] = pd.to_datetime(self.df["start_time"].str[:5], format="%H:%M").dt.hour
         self.df["day_of_week"] = pd.to_datetime(self.df["date"]).dt.day_name()
         self.df["month"] = pd.to_datetime(self.df["date"]).dt.month_name()
 

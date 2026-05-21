@@ -1,0 +1,242 @@
+-- ================================================================
+-- Event Analytics Platform — Supabase Schema
+-- Run this entire file in: Supabase > SQL Editor > New Query
+-- ================================================================
+
+-- ── Events table ─────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.events (
+  id               BIGSERIAL    PRIMARY KEY,
+  user_id          UUID         NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  title            TEXT         NOT NULL,
+  category         TEXT         NOT NULL,
+  start_time       TIME         NOT NULL,
+  end_time         TIME         NOT NULL,
+  duration_minutes INTEGER      NOT NULL,
+  date             DATE         NOT NULL,
+  created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS events_user_id_idx ON public.events(user_id);
+CREATE INDEX IF NOT EXISTS events_date_idx    ON public.events(date);
+
+-- ── Row Level Security ────────────────────────────────────────────
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "users_select_own" ON public.events
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "users_insert_own" ON public.events
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "users_update_own" ON public.events
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "users_delete_own" ON public.events
+  FOR DELETE USING (auth.uid() = user_id);
+
+
+-- ================================================================
+-- CRUD Functions
+-- ================================================================
+
+CREATE OR REPLACE FUNCTION public.get_user_events(p_user_id UUID)
+RETURNS SETOF public.events
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  RETURN QUERY
+    SELECT * FROM public.events
+    WHERE user_id = p_user_id
+    ORDER BY date DESC, start_time ASC;
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.create_event(
+  p_user_id          UUID,
+  p_title            TEXT,
+  p_category         TEXT,
+  p_start_time       TIME,
+  p_end_time         TIME,
+  p_duration_minutes INTEGER,
+  p_date             DATE
+) RETURNS public.events
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_row public.events;
+BEGIN
+  INSERT INTO public.events (user_id, title, category, start_time, end_time, duration_minutes, date)
+  VALUES (p_user_id, p_title, p_category, p_start_time, p_end_time, p_duration_minutes, p_date)
+  RETURNING * INTO v_row;
+  RETURN v_row;
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.update_event(
+  p_event_id         BIGINT,
+  p_user_id          UUID,
+  p_title            TEXT,
+  p_category         TEXT,
+  p_start_time       TIME,
+  p_end_time         TIME,
+  p_duration_minutes INTEGER,
+  p_date             DATE
+) RETURNS public.events
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_row public.events;
+BEGIN
+  UPDATE public.events SET
+    title            = p_title,
+    category         = p_category,
+    start_time       = p_start_time,
+    end_time         = p_end_time,
+    duration_minutes = p_duration_minutes,
+    date             = p_date
+  WHERE id = p_event_id AND user_id = p_user_id
+  RETURNING * INTO v_row;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Event not found or access denied';
+  END IF;
+  RETURN v_row;
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.delete_event(
+  p_event_id BIGINT,
+  p_user_id  UUID
+) RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  DELETE FROM public.events WHERE id = p_event_id AND user_id = p_user_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Event not found or access denied';
+  END IF;
+END;
+$$;
+
+
+-- ================================================================
+-- Analytics Functions
+-- ================================================================
+
+CREATE OR REPLACE FUNCTION public.get_summary_stats(p_user_id UUID)
+RETURNS TABLE(total_events BIGINT, total_minutes BIGINT, category_count BIGINT, avg_duration NUMERIC)
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  RETURN QUERY
+    SELECT
+      COUNT(*)::BIGINT                              AS total_events,
+      SUM(duration_minutes)::BIGINT                AS total_minutes,
+      COUNT(DISTINCT category)::BIGINT             AS category_count,
+      ROUND(AVG(duration_minutes)::NUMERIC, 1)     AS avg_duration
+    FROM public.events
+    WHERE user_id = p_user_id;
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.get_category_stats(p_user_id UUID)
+RETURNS TABLE(category TEXT, event_count BIGINT, total_minutes BIGINT, avg_minutes NUMERIC)
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  RETURN QUERY
+    SELECT
+      e.category,
+      COUNT(*)::BIGINT                             AS event_count,
+      SUM(e.duration_minutes)::BIGINT              AS total_minutes,
+      ROUND(AVG(e.duration_minutes)::NUMERIC, 1)   AS avg_minutes
+    FROM public.events e
+    WHERE e.user_id = p_user_id
+    GROUP BY e.category
+    ORDER BY event_count DESC;
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.get_hourly_stats(p_user_id UUID)
+RETURNS TABLE(hour INT, event_count BIGINT)
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  RETURN QUERY
+    SELECT
+      EXTRACT(HOUR FROM start_time)::INT  AS hour,
+      COUNT(*)::BIGINT                    AS event_count
+    FROM public.events
+    WHERE user_id = p_user_id
+    GROUP BY hour
+    ORDER BY hour;
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.get_daily_stats(p_user_id UUID)
+RETURNS TABLE(day_of_week TEXT, event_count BIGINT)
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  RETURN QUERY
+    SELECT
+      TO_CHAR(date, 'FMDay')  AS day_of_week,
+      COUNT(*)::BIGINT        AS event_count
+    FROM public.events
+    WHERE user_id = p_user_id
+    GROUP BY day_of_week, EXTRACT(DOW FROM date)
+    ORDER BY EXTRACT(DOW FROM date);
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.get_monthly_trends(p_user_id UUID)
+RETURNS TABLE(month TEXT, event_count BIGINT, total_minutes BIGINT)
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  RETURN QUERY
+    SELECT
+      TO_CHAR(date, 'YYYY-MM')      AS month,
+      COUNT(*)::BIGINT              AS event_count,
+      SUM(duration_minutes)::BIGINT AS total_minutes
+    FROM public.events
+    WHERE user_id = p_user_id
+    GROUP BY month
+    ORDER BY month;
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.get_category_trend(p_user_id UUID)
+RETURNS TABLE(month TEXT, category TEXT, event_count BIGINT)
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  RETURN QUERY
+    SELECT
+      TO_CHAR(date, 'YYYY-MM')  AS month,
+      e.category,
+      COUNT(*)::BIGINT          AS event_count
+    FROM public.events e
+    WHERE e.user_id = p_user_id
+    GROUP BY month, e.category
+    ORDER BY month, e.category;
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.get_top_events(p_user_id UUID, p_limit INT DEFAULT 5)
+RETURNS SETOF public.events
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  RETURN QUERY
+    SELECT * FROM public.events
+    WHERE user_id = p_user_id
+    ORDER BY duration_minutes DESC
+    LIMIT p_limit;
+END;
+$$;
