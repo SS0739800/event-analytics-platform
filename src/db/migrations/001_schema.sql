@@ -6,7 +6,7 @@
 -- ── Events table ─────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.events (
   id               BIGSERIAL    PRIMARY KEY,
-  user_id          UUID         NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id          UUID         NOT NULL,
   title            TEXT         NOT NULL,
   category         TEXT         NOT NULL,
   start_time       TIME         NOT NULL,
@@ -19,34 +19,37 @@ CREATE TABLE IF NOT EXISTS public.events (
 CREATE INDEX IF NOT EXISTS events_user_id_idx ON public.events(user_id);
 CREATE INDEX IF NOT EXISTS events_date_idx    ON public.events(date);
 
--- ── Row Level Security ────────────────────────────────────────────
-ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "users_select_own" ON public.events
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "users_insert_own" ON public.events
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "users_update_own" ON public.events
-  FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "users_delete_own" ON public.events
-  FOR DELETE USING (auth.uid() = user_id);
-
-
 -- ================================================================
 -- CRUD Functions
 -- ================================================================
 
 CREATE OR REPLACE FUNCTION public.get_user_events(p_user_id UUID)
-RETURNS SETOF public.events
+RETURNS TABLE (
+  id               BIGINT,
+  user_id          UUID,
+  title            TEXT,
+  category         TEXT,
+  start_time       TIME,
+  end_time         TIME,
+  duration_minutes INTEGER,
+  date             DATE,
+  created_at       TIMESTAMPTZ,
+  user_email       TEXT,
+  user_full_name   TEXT
+)
 LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
   RETURN QUERY
-    SELECT * FROM public.events
-    WHERE user_id = p_user_id
-    ORDER BY date DESC, start_time ASC;
+    SELECT
+      e.id, e.user_id, e.title, e.category,
+      e.start_time, e.end_time, e.duration_minutes,
+      e.date, e.created_at,
+      p.email     AS user_email,
+      p.full_name AS user_full_name
+    FROM public.events e
+    LEFT JOIN public.profiles p ON p.id = e.user_id
+    WHERE e.user_id = p_user_id
+    ORDER BY e.date DESC, e.start_time ASC;
 END;
 $$;
 
