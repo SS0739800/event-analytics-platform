@@ -664,6 +664,118 @@ select.field-input { cursor: pointer; }
   color: var(--text-primary);
 }
 
+/* ── AI Insights Card ── */
+.ai-insights-card {
+  border-color: #c7d2fe;
+  background: linear-gradient(135deg, #fefeff 0%, #f5f3ff 100%);
+}
+
+.ai-insights-body {
+  padding: 16px 20px;
+}
+
+.ai-insights-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ai-insights-list li {
+  display: flex;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  line-height: 1.55;
+}
+
+.ai-insights-list li::before {
+  content: '✦';
+  color: var(--purple);
+  font-size: 11px;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.ai-loading {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Events table ── */
+.events-table-wrap {
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 5px;
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.55;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.icon-btn:hover { opacity: 1; background: var(--page-bg); }
+.icon-btn-danger:hover { background: #fef2f2; }
+
+.events-table-confirm-row td { background: #fff8f8; }
+
+/* ── Bulk Preview Modal ── */
+.bulk-preview-box {
+  max-width: 680px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.bulk-preview-list {
+  overflow-y: auto;
+  flex: 1;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  max-height: 420px;
+}
+
+/* ── AI Parse Modal ── */
+.ai-parse-body {
+  padding: 16px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-parse-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.ai-parse-textarea {
+  resize: vertical;
+  font-family: inherit;
+  min-height: 80px;
+}
+
+.ai-parse-tip {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ── AI button ── */
+.btn-ai {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: #fff;
+  border-color: transparent;
+}
+
+.btn-ai:hover { background: linear-gradient(135deg, #7c3aed, #4f46e5); }
+
 /* ── Responsive ── */
 @media (max-width: 1100px) {
   .stats-grid { grid-template-columns: 1fr 1fr; }

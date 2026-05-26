@@ -5,15 +5,18 @@ import StatCard from '../components/StatCard'
 import CategoryCharts from '../components/CategoryCharts'
 import TimeCharts from '../components/TimeCharts'
 import TrendChart from '../components/TrendChart'
-import TopEventsTable from '../components/TopEventsTable'
+import EventsTable from '../components/EventsTable'
 import EventModal from '../components/EventModal'
+import AIInsightsCard from '../components/AIInsightsCard'
+import AIParseModal from '../components/AIParseModal'
+import BulkPreviewModal from '../components/BulkPreviewModal'
 
 const NAV = [
   { id: 'overview',   icon: '▦',  label: 'Overview' },
   { id: 'categories', icon: '⊞',  label: 'Categories' },
   { id: 'time',       icon: '◷',  label: 'Time Analysis' },
   { id: 'trends',     icon: '╱╲', label: 'Trends' },
-  { id: 'events',     icon: '≡',  label: 'Top Events' },
+  { id: 'events',     icon: '≡',  label: 'Events' },
 ]
 
 function useAuthFetch(path, refreshKey) {
@@ -30,6 +33,10 @@ export default function DashboardPage() {
   const [active, setActive] = useState('overview')
   const [modalOpen, setModalOpen] = useState(false)
   const [editEvent, setEditEvent] = useState(null)
+  const [aiPrefill, setAiPrefill] = useState(null)
+  const [aiModalOpen, setAiModalOpen] = useState(false)
+  const [bulkEvents, setBulkEvents] = useState([])
+  const [bulkPreviewOpen, setBulkPreviewOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
@@ -42,7 +49,7 @@ export default function DashboardPage() {
   const catStats  = useAuthFetch('/category-stats', refreshKey)
   const timeStats = useAuthFetch('/time-stats',     refreshKey)
   const trends    = useAuthFetch('/trends',         refreshKey)
-  const topEvents = useAuthFetch('/top-events',     refreshKey)
+  const allEvents = useAuthFetch('/events',         refreshKey)
 
   const scrollTo = (id) => {
     setActive(id)
@@ -103,6 +110,7 @@ export default function DashboardPage() {
           </div>
           <div className="top-bar-right">
             <button className="btn btn-outline" onClick={() => { setEditEvent(null); setModalOpen(true) }}>+ Add Event</button>
+            <button className="btn btn-ai" onClick={() => setAiModalOpen(true)}>✨ Add with AI</button>
             <button className="btn btn-outline" onClick={() => exportWithAuth('/export/csv')}>↓ CSV</button>
             <button className="btn btn-outline" onClick={() => exportWithAuth('/export/excel')}>↓ Excel</button>
             <button className="btn btn-primary" onClick={() => exportWithAuth('/export/pdf')}>↓ PDF</button>
@@ -117,6 +125,9 @@ export default function DashboardPage() {
               <StatCard color="green"  icon="⏱" label="Total Hours Logged"  value={stats?.total_hours != null ? `${stats.total_hours}h` : null} />
               <StatCard color="orange" icon="🏷" label="Activity Categories" value={stats?.categories} />
               <StatCard color="purple" icon="⏰" label="Avg Duration (min)"  value={stats?.avg_duration} />
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <AIInsightsCard refreshKey={refreshKey} />
             </div>
           </section>
 
@@ -148,24 +159,60 @@ export default function DashboardPage() {
           </section>
 
           <section id="events" className="section">
-            <div className="section-header"><span className="section-title">Top Events</span></div>
+            <div className="section-header"><span className="section-title">Events</span></div>
             <div className="card">
               <div className="card-header">
                 <div>
-                  <div className="card-title">Longest Activities</div>
-                  <div className="card-subtitle">Top 5 by duration</div>
+                  <div className="card-title">All Events</div>
+                  <div className="card-subtitle">
+                    {allEvents ? `${allEvents.length} total` : 'Loading…'}
+                  </div>
                 </div>
               </div>
-              <div className="card-body-flush">
-                <TopEventsTable data={topEvents} onEdit={ev => { setEditEvent(ev); setModalOpen(true) }} />
+              <div className="card-body-flush events-table-wrap">
+                <EventsTable
+                  data={allEvents}
+                  onEdit={ev => { setEditEvent(ev); setAiPrefill(null); setModalOpen(true) }}
+                  onDeleted={refresh}
+                />
               </div>
             </div>
           </section>
         </div>
       </div>
 
+      {aiModalOpen && (
+        <AIParseModal
+          onClose={() => setAiModalOpen(false)}
+          onParsed={(parsed) => {
+            setAiModalOpen(false)
+            setEditEvent(null)
+            setAiPrefill(parsed)
+            setModalOpen(true)
+          }}
+          onBulkParsed={(parsed) => {
+            setAiModalOpen(false)
+            setBulkEvents(parsed)
+            setBulkPreviewOpen(true)
+          }}
+        />
+      )}
+
+      {bulkPreviewOpen && (
+        <BulkPreviewModal
+          events={bulkEvents}
+          onClose={() => setBulkPreviewOpen(false)}
+          onSaved={() => { setBulkPreviewOpen(false); refresh() }}
+        />
+      )}
+
       {modalOpen && (
-        <EventModal event={editEvent} onClose={() => setModalOpen(false)} onSaved={refresh} />
+        <EventModal
+          event={editEvent}
+          prefill={editEvent ? null : aiPrefill}
+          onClose={() => { setModalOpen(false); setAiPrefill(null) }}
+          onSaved={refresh}
+        />
       )}
     </div>
   )

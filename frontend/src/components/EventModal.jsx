@@ -13,21 +13,27 @@ function calcDuration(start, end) {
   return mins > 0 ? mins : ''
 }
 
-export default function EventModal({ event, onClose, onSaved }) {
+export default function EventModal({ event, prefill, onClose, onSaved }) {
   const [form, setForm] = useState(EMPTY)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    setForm(event ? {
-      title: event.title,
-      category: event.category,
-      date: event.date?.slice(0, 10) ?? '',
-      start_time: event.start_time?.slice(0, 5) ?? '',
-      end_time: event.end_time?.slice(0, 5) ?? '',
-      duration_minutes: event.duration_minutes,
-    } : EMPTY)
-  }, [event])
+    if (event) {
+      setForm({
+        title: event.title,
+        category: event.category,
+        date: event.date?.slice(0, 10) ?? '',
+        start_time: event.start_time?.slice(0, 5) ?? '',
+        end_time: event.end_time?.slice(0, 5) ?? '',
+        duration_minutes: event.duration_minutes,
+      })
+    } else if (prefill) {
+      setForm({ ...EMPTY, ...prefill })
+    } else {
+      setForm(EMPTY)
+    }
+  }, [event, prefill])
 
   const set = (k, v) => setForm(f => {
     const next = { ...f, [k]: v }

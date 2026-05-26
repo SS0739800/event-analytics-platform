@@ -14,7 +14,7 @@ from src.analytics.trends import Trends
 from src.auth.password import check_password
 from src.auth.tokens import create_token, verify_token
 from src.auth.totp import get_qr_base64, verify_code
-from src.db.events import fetch_events_df, create_event, update_event, delete_event
+from src.db.events import fetch_events_df, create_event, update_event, delete_event, create_events_bulk
 from src.db.profiles import (
     email_taken, create_profile_from_pending,
     get_profile_by_email, get_profile_by_id, get_profile_by_id_full
@@ -219,6 +219,58 @@ def api_update_event(user_id, event_id):
 def api_delete_event(user_id, event_id):
     delete_event(event_id=event_id, user_id=user_id)
     return "", 204
+
+
+# ── AI ───────────────────────────────────────────────────────────────────────
+
+@app.route("/api/insights")
+@require_auth
+def api_insights(user_id):
+    df, subject, time_s, _ = _analytics(user_id)
+    if df.empty:
+        return jsonify({"insights": "Add some events to your dashboard to get personalized AI insights!"})
+
+    cat_breakdown = subject.events_by_category()
+    busiest_days = time_s.busiest_days()
+    busiest_hours = time_s.busiest_hours()
+    busiest_day = max(busiest_days, key=busiest_days.get) if busiest_days else "N/A"
+    busiest_hour = max(busiest_hours, key=busiest_hours.get) if busiest_hours else "N/A"
+
+    summary = {
+        "total_events": len(df),
+        "total_hours": round(df["duration_minutes"].sum() / 60, 1),
+        "categories": int(df["category"].nunique()),
+        "category_breakdown": cat_breakdown,
+        "busiest_day": busiest_day,
+        "busiest_hour": f"{busiest_hour}:00" if busiest_hour != "N/A" else "N/A",
+    }
+
+    from src.ai.insights import generate_insights
+    return jsonify({"insights": generate_insights(summary)})
+
+
+@app.route("/api/parse-event", methods=["POST"])
+@require_auth
+def api_parse_event(user_id):
+    body = request.get_json()
+    text = (body.get("text") or "").strip()
+    if not text:
+        return jsonify({"error": "No text provided"}), 400
+    from src.ai.parser import parse_event_smart
+    try:
+        return jsonify(parse_event_smart(text))
+    except Exception as e:
+        return jsonify({"error": f"Could not parse: {e}"}), 422
+
+
+@app.route("/api/events/bulk", methods=["POST"])
+@require_auth
+def api_create_events_bulk(user_id):
+    events = request.get_json()
+    if not isinstance(events, list) or not events:
+        return jsonify({"error": "Expected a list of events"}), 400
+    create_events_bulk(user_id, events)
+    return jsonify({"created": len(events)}), 201
 
 
 # ── Analytics ─────────────────────────────────────────────────────────────────

@@ -38,6 +38,22 @@ def update_event(event_id: int, user_id: str, title: str, category: str,
     }).execute()
 
 
+def create_events_bulk(user_id: str, events: list[dict]) -> list:
+    results = []
+    for e in events:
+        r = create_event(
+            user_id=user_id,
+            title=e["title"],
+            category=e["category"],
+            start_time=e["start_time"],
+            end_time=e["end_time"],
+            duration_minutes=int(e["duration_minutes"]),
+            date=e["date"],
+        )
+        results.append(r.data)
+    return results
+
+
 def delete_event(event_id: int, user_id: str):
     return get_client().rpc("delete_event", {
         "p_event_id": event_id,
