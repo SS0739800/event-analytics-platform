@@ -89,6 +89,11 @@ export default function DashboardPage() {
               <span className="nav-icon">{icon}</span>{label}
             </div>
           ))}
+          <div className="nav-item" role="button" tabIndex={0}
+            onClick={() => navigate('/calendar')}
+            onKeyDown={e => e.key === 'Enter' && navigate('/calendar')}>
+            <span className="nav-icon">📅</span>Calendar
+          </div>
         </nav>
 
         <div className="sidebar-user">
