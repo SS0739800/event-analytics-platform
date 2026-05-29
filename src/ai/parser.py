@@ -48,4 +48,6 @@ Rules:
     raw = response.choices[0].message.content.strip()
     start = raw.find("[")
     end = raw.rfind("]") + 1
+    if start == -1 or end == 0 or end <= start:
+        raise ValueError(f"No valid JSON array in response: {raw[:200]}")
     return json.loads(raw[start:end])

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 
 const CATEGORIES = ['Academics', 'Gym', 'Sports', 'Cooking', 'Recreation']
-
 const EMPTY = { title: '', category: 'Academics', date: '', start_time: '', end_time: '', duration_minutes: '' }
 
 function calcDuration(start, end) {
@@ -17,6 +16,8 @@ export default function EventModal({ event, prefill, onClose, onSaved }) {
   const [form, setForm] = useState(EMPTY)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [conflict, setConflict] = useState(null) // { id, title, message }
+  const [replacing, setReplacing] = useState(false)
 
   useEffect(() => {
     if (event) {
@@ -33,28 +34,73 @@ export default function EventModal({ event, prefill, onClose, onSaved }) {
     } else {
       setForm(EMPTY)
     }
+    setConflict(null)
+    setError('')
   }, [event, prefill])
 
-  const set = (k, v) => setForm(f => {
-    const next = { ...f, [k]: v }
-    if (k === 'start_time' || k === 'end_time') {
-      const dur = calcDuration(k === 'start_time' ? v : next.start_time, k === 'end_time' ? v : next.end_time)
-      if (dur !== '') next.duration_minutes = dur
+  const set = (k, v) => {
+    setConflict(null)
+    setError('')
+    setForm(f => {
+      const next = { ...f, [k]: v }
+      if (k === 'start_time' || k === 'end_time') {
+        const dur = calcDuration(k === 'start_time' ? v : next.start_time, k === 'end_time' ? v : next.end_time)
+        if (dur !== '') next.duration_minutes = dur
+      }
+      return next
+    })
+  }
+
+  const save = async () => {
+    const url = event ? `/api/events/${event.id}` : '/api/events'
+    const method = event ? 'PUT' : 'POST'
+    setSaving(true)
+    const res = await apiFetch(url, { method, body: JSON.stringify(form) })
+    setSaving(false)
+    if (res.status === 409) {
+      const d = await res.json()
+      setConflict({ id: d.conflict_id, title: d.conflict_title, message: d.error })
+      return
     }
-    return next
-  })
+    if (!res.ok) {
+      const d = await res.json()
+      setError(d.error || 'Save failed')
+      return
+    }
+    onSaved()
+    onClose()
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    setSaving(true)
+    setConflict(null)
+    if (form.start_time && form.end_time && form.start_time >= form.end_time) {
+      setError('Start time must be before end time')
+      return
+    }
+    await save()
+  }
 
+  const handleReplace = async () => {
+    setReplacing(true)
+    const deleteRes = await apiFetch(`/api/events/${conflict.id}`, { method: 'DELETE' })
+    if (!deleteRes.ok) {
+      setReplacing(false)
+      setError('Could not remove the existing event — please try again.')
+      return
+    }
+    setConflict(null)
+    // Inline the save to avoid stale closure from calling save()
     const url = event ? `/api/events/${event.id}` : '/api/events'
     const method = event ? 'PUT' : 'POST'
     const res = await apiFetch(url, { method, body: JSON.stringify(form) })
-
-    setSaving(false)
-    if (!res.ok) { const d = await res.json(); setError(d.error || 'Save failed'); return }
+    setReplacing(false)
+    if (!res.ok) {
+      const d = await res.json()
+      setError(d.error || 'Save failed')
+      return
+    }
     onSaved()
     onClose()
   }
@@ -68,6 +114,20 @@ export default function EventModal({ event, prefill, onClose, onSaved }) {
         </div>
 
         {error && <div className="auth-error" style={{ margin: '0 20px 12px' }}>{error}</div>}
+
+        {conflict && (
+          <div className="conflict-banner">
+            <div className="conflict-banner-msg">⚠ {conflict.message}</div>
+            <div className="conflict-banner-actions">
+              <button className="bulk-resolve-btn skip" onClick={() => setConflict(null)}>
+                Keep existing
+              </button>
+              <button className="bulk-resolve-btn replace" onClick={handleReplace} disabled={replacing}>
+                {replacing ? 'Replacing…' : `Replace '${conflict.title}'`}
+              </button>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="field">
@@ -101,7 +161,7 @@ export default function EventModal({ event, prefill, onClose, onSaved }) {
           </div>
           <div className="modal-actions">
             <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
+            <button type="submit" className="btn btn-primary" disabled={saving || replacing}>
               {saving ? 'Saving…' : event ? 'Save changes' : 'Add event'}
             </button>
           </div>

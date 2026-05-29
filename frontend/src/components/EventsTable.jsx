@@ -14,9 +14,20 @@ export default function EventsTable({ data, onEdit, onDeleted }) {
 
   const sorted = [...data].sort((a, b) => new Date(b.date) - new Date(a.date))
 
-  const handleDelete = async (id) => {
+  const confirmEvent = sorted.find(e => e.id === confirmId)
+  const isSeries = !!confirmEvent?.series_id
+
+  const handleDeleteOne = async () => {
     setDeleting(true)
-    await apiFetch(`/api/events/${id}`, { method: 'DELETE' })
+    await apiFetch(`/api/events/${confirmId}`, { method: 'DELETE' })
+    setDeleting(false)
+    setConfirmId(null)
+    onDeleted()
+  }
+
+  const handleDeleteSeries = async () => {
+    setDeleting(true)
+    await apiFetch(`/api/events/series/${confirmEvent.series_id}`, { method: 'DELETE' })
     setDeleting(false)
     setConfirmId(null)
     onDeleted()
@@ -31,33 +42,46 @@ export default function EventsTable({ data, onEdit, onDeleted }) {
           <th>Category</th>
           <th>Time</th>
           <th>Duration</th>
-          <th style={{ width: 100 }}></th>
+          <th style={{ width: 120 }}></th>
         </tr>
       </thead>
       <tbody>
         {sorted.map((event) => (
           confirmId === event.id ? (
             <tr key={event.id} className="events-table-confirm-row">
-              <td colSpan={4} style={{ color: '#ef4444', fontWeight: 500, fontSize: 13 }}>
-                Delete "{event.title}"?
-              </td>
-              <td colSpan={2}>
-                <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                  <button className="btn btn-outline" style={{ padding: '3px 10px', fontSize: 12 }}
-                    onClick={() => setConfirmId(null)} disabled={deleting}>
-                    Cancel
-                  </button>
-                  <button className="btn" style={{ padding: '3px 10px', fontSize: 12, background: '#ef4444', color: '#fff', border: 'none' }}
-                    onClick={() => handleDelete(event.id)} disabled={deleting}>
-                    {deleting ? '…' : 'Delete'}
-                  </button>
+              <td colSpan={6}>
+                <div className="events-table-confirm">
+                  <span className="events-table-confirm-msg">
+                    {isSeries
+                      ? <>Delete <strong>"{event.title}"</strong> — just this event or the entire series?</>
+                      : <>Delete <strong>"{event.title}"</strong>?</>}
+                  </span>
+                  <div className="events-table-confirm-btns">
+                    <button className="btn btn-outline" style={{ padding: '3px 10px', fontSize: 12 }}
+                      onClick={() => setConfirmId(null)} disabled={deleting}>
+                      Cancel
+                    </button>
+                    <button className="confirm-delete-btn single"
+                      onClick={handleDeleteOne} disabled={deleting}>
+                      {deleting ? '…' : isSeries ? 'This event only' : 'Delete'}
+                    </button>
+                    {isSeries && (
+                      <button className="confirm-delete-btn series"
+                        onClick={handleDeleteSeries} disabled={deleting}>
+                        {deleting ? '…' : 'Entire series'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </td>
             </tr>
           ) : (
             <tr key={event.id}>
               <td style={{ color: '#64748b' }}>{String(event.date).slice(0, 10)}</td>
-              <td style={{ fontWeight: 500 }}>{event.title}</td>
+              <td style={{ fontWeight: 500 }}>
+                {event.title}
+                {event.series_id && <span className="series-dot" title="Part of a series">●</span>}
+              </td>
               <td><span className={`badge ${CATEGORY_COLORS[event.category] ?? ''}`}>{event.category}</span></td>
               <td style={{ color: '#64748b' }}>{String(event.start_time).slice(0, 5)} – {String(event.end_time).slice(0, 5)}</td>
               <td>{event.duration_minutes} min</td>

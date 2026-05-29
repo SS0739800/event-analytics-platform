@@ -1,11 +1,12 @@
 import io
+import os
 import tempfile
 import time
 import uuid
 from functools import wraps
 from pathlib import Path
 
-from flask import Flask, jsonify, request, send_file, send_from_directory
+from flask import Flask, jsonify, request, send_file, send_from_directory, after_this_request
 from flask_cors import CORS
 
 from src.analytics.subject_stats import SubjectStats
@@ -14,7 +15,7 @@ from src.analytics.trends import Trends
 from src.auth.password import check_password
 from src.auth.tokens import create_token, verify_token
 from src.auth.totp import get_qr_base64, verify_code
-from src.db.events import fetch_events_df, create_event, update_event, delete_event, create_events_bulk
+from src.db.events import fetch_events_df, create_event, update_event, delete_event, create_events_bulk, delete_series, check_overlap
 from src.db.profiles import (
     email_taken, create_profile_from_pending,
     get_profile_by_email, get_profile_by_id, get_profile_by_id_full
@@ -24,6 +25,13 @@ from src.export.pdf_exporter import PDFExporter
 
 # In-memory store for pending registrations (keyed by UUID, expires in 10 min)
 _pending: dict[str, dict] = {}
+
+
+def _purge_expired_pending():
+    now = time.time()
+    expired = [k for k, v in _pending.items() if now > v["expires"]]
+    for k in expired:
+        _pending.pop(k, None)
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 FRONTEND_DIST = ROOT / "frontend" / "dist"
@@ -73,6 +81,7 @@ def auth_register():
     totp_secret = generate_secret()
     password_hash = hash_password(password)
 
+    _purge_expired_pending()
     pending_id = str(uuid.uuid4())
     _pending[pending_id] = {
         "email": email,
@@ -185,6 +194,17 @@ def api_get_events(user_id):
 @require_auth
 def api_create_event(user_id):
     body = request.get_json()
+    if body["start_time"] >= body["end_time"]:
+        return jsonify({"error": "Start time must be before end time"}), 400
+    conflict = check_overlap(user_id, body["date"], body["start_time"], body["end_time"])
+    if conflict:
+        c_start = str(conflict["start_time"])[:5]
+        c_end = str(conflict["end_time"])[:5]
+        return jsonify({
+            "error": f"Overlaps with '{conflict['title']}' on this date ({c_start}–{c_end})",
+            "conflict_id": conflict["id"],
+            "conflict_title": conflict["title"],
+        }), 409
     result = create_event(
         user_id=user_id,
         title=body["title"],
@@ -201,6 +221,18 @@ def api_create_event(user_id):
 @require_auth
 def api_update_event(user_id, event_id):
     body = request.get_json()
+    if body["start_time"] >= body["end_time"]:
+        return jsonify({"error": "Start time must be before end time"}), 400
+    conflict = check_overlap(user_id, body["date"], body["start_time"], body["end_time"],
+                             exclude_id=event_id)
+    if conflict:
+        c_start = str(conflict["start_time"])[:5]
+        c_end = str(conflict["end_time"])[:5]
+        return jsonify({
+            "error": f"Overlaps with '{conflict['title']}' on this date ({c_start}–{c_end})",
+            "conflict_id": conflict["id"],
+            "conflict_title": conflict["title"],
+        }), 409
     result = update_event(
         event_id=event_id,
         user_id=user_id,
@@ -219,6 +251,13 @@ def api_update_event(user_id, event_id):
 def api_delete_event(user_id, event_id):
     delete_event(event_id=event_id, user_id=user_id)
     return "", 204
+
+
+@app.route("/api/events/series/<series_id>", methods=["DELETE"])
+@require_auth
+def api_delete_series(user_id, series_id):
+    count = delete_series(series_id=series_id, user_id=user_id)
+    return jsonify({"deleted": count}), 200
 
 
 # ── AI ───────────────────────────────────────────────────────────────────────
@@ -263,14 +302,66 @@ def api_parse_event(user_id):
         return jsonify({"error": f"Could not parse: {e}"}), 422
 
 
+@app.route("/api/events/validate-bulk", methods=["POST"])
+@require_auth
+def api_validate_events_bulk(user_id):
+    events = request.get_json()
+    if not isinstance(events, list):
+        return jsonify({"error": "Expected a list"}), 400
+
+    # Fetch all existing events ONCE — avoids N separate Supabase calls in the loop
+    from src.db.client import get_client
+    existing = get_client().table("events") \
+        .select("id, title, start_time, end_time, date") \
+        .eq("user_id", user_id) \
+        .execute().data or []
+
+    results = []
+    committed = []  # intra-batch intervals already confirmed clean
+
+    for e in events:
+        date = e.get("date", "")
+        start = (e.get("start_time") or "")[:5]
+        end = (e.get("end_time") or "")[:5]
+        conflict = None
+        conflict_id = None
+
+        # Check in-memory against existing DB events
+        for ex in existing:
+            if str(ex.get("date", ""))[:10] != date[:10]:
+                continue
+            ex_start = str(ex["start_time"])[:5]
+            ex_end = str(ex["end_time"])[:5]
+            if start < ex_end and end > ex_start:
+                conflict = f"Overlaps with '{ex['title']}' ({ex_start}–{ex_end})"
+                conflict_id = ex["id"]
+                break
+
+        if not conflict:
+            batch_hit = next(
+                (c for c in committed
+                 if c["date"] == date and start < c["end_time"] and end > c["start_time"]),
+                None
+            )
+            if batch_hit:
+                conflict = f"Conflicts with '{batch_hit['title']}' in this batch ({batch_hit['start_time']}–{batch_hit['end_time']})"
+
+        if not conflict:
+            committed.append({"date": date, "start_time": start, "end_time": end, "title": e.get("title")})
+
+        results.append({**e, "conflict": conflict, "conflict_id": conflict_id})
+
+    return jsonify(results)
+
+
 @app.route("/api/events/bulk", methods=["POST"])
 @require_auth
 def api_create_events_bulk(user_id):
     events = request.get_json()
     if not isinstance(events, list) or not events:
         return jsonify({"error": "Expected a list of events"}), 400
-    create_events_bulk(user_id, events)
-    return jsonify({"created": len(events)}), 201
+    result = create_events_bulk(user_id, events)
+    return jsonify(result), 201
 
 
 # ── Analytics ─────────────────────────────────────────────────────────────────
@@ -360,6 +451,13 @@ def export_excel(user_id):
     with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as f:
         tmp = f.name
     ExcelExporter(df).export(tmp, analytics)
+
+    @after_this_request
+    def remove_file(response):
+        try: os.unlink(tmp)
+        except Exception: pass
+        return response
+
     return send_file(
         tmp,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -381,6 +479,13 @@ def export_pdf(user_id):
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
         tmp = f.name
     PDFExporter(analytics).export(tmp)
+
+    @after_this_request
+    def remove_file(response):
+        try: os.unlink(tmp)
+        except Exception: pass
+        return response
+
     return send_file(tmp, mimetype="application/pdf", as_attachment=True, download_name="events_report.pdf")
 
 
