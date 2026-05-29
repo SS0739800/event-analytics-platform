@@ -40,6 +40,31 @@ export default function CalendarPage() {
   const [prefillDate, setPrefillDate] = useState(null)
   const [confirmDeleteEv, setConfirmDeleteEv] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [showQuery, setShowQuery]   = useState(false)
+  const EMPTY_FILTERS = { dateFrom: '', dateTo: '', timeFrom: '', timeTo: '', category: '' }
+  const [filters, setFilters] = useState(EMPTY_FILTERS)
+
+  const setF = (k, v) => setFilters(f => ({ ...f, [k]: v }))
+
+  const hasFilters = Object.values(filters).some(Boolean)
+
+  const queryResults = useMemo(() => {
+    if (!showQuery || !hasFilters || !events) return null
+    return [...events].filter(ev => {
+      const d  = String(ev.date).slice(0, 10)
+      const t0 = String(ev.start_time).slice(0, 5)
+      const t1 = String(ev.end_time).slice(0, 5)
+      if (filters.dateFrom && d < filters.dateFrom) return false
+      if (filters.dateTo   && d > filters.dateTo)   return false
+      if (filters.timeFrom && t0 < filters.timeFrom) return false
+      if (filters.timeTo   && t1 > filters.timeTo)   return false
+      if (filters.category && ev.category !== filters.category) return false
+      return true
+    }).sort((a, b) =>
+      String(a.date).localeCompare(String(b.date)) ||
+      String(a.start_time).localeCompare(String(b.start_time))
+    )
+  }, [showQuery, hasFilters, events, filters])
 
   useEffect(() => {
     apiFetch('/api/profile').then(r => r.ok ? r.json() : null).then(p => { if (p) setUser(p) })
@@ -98,8 +123,8 @@ export default function CalendarPage() {
 
         <span className="sidebar-section-label">Navigation</span>
         <nav className="sidebar-nav">
-          <div className="nav-item" role="button" tabIndex={0} onClick={() => navigate('/')}
-            onKeyDown={e => e.key==='Enter' && navigate('/')}>
+          <div className="nav-item" role="button" tabIndex={0} onClick={() => navigate('/dashboard')}
+            onKeyDown={e => e.key==='Enter' && navigate('/dashboard')}>
             <span className="nav-icon">▦</span>Dashboard
           </div>
           <div className="nav-item active" role="button" tabIndex={0}>
@@ -111,7 +136,7 @@ export default function CalendarPage() {
           {user.full_name && <div className="sidebar-user-name">{user.full_name}</div>}
           <div className="sidebar-user-email">{user.email}</div>
           <div className="nav-item" role="button" tabIndex={0}
-            onClick={() => { clearToken(); navigate('/login') }}
+            onClick={() => { clearToken(); navigate('/') }}
             style={{ color: '#ef4444', padding: '6px 14px' }}>
             Sign out
           </div>
@@ -130,13 +155,58 @@ export default function CalendarPage() {
             <button className="btn btn-outline" style={{ fontSize: 12 }} onClick={goToday}>Today</button>
           </div>
           <div className="top-bar-right">
+            <button
+              className={`btn ${showQuery ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => { setShowQuery(q => !q); setFilters(EMPTY_FILTERS) }}>
+              {showQuery ? '✕ Close Query' : '🔍 Query Events'}
+            </button>
             <button className="btn btn-primary" onClick={() => openAdd(null)}>+ Add Event</button>
           </div>
         </header>
 
+        {/* ── Filter bar ── */}
+        {showQuery && (
+          <div className="cal-filter-bar">
+            <div className="cal-filter-group">
+              <span className="cal-filter-label">Date range</span>
+              <input type="date" className="field-input cal-filter-input"
+                value={filters.dateFrom} onChange={e => setF('dateFrom', e.target.value)} />
+              <span className="cal-filter-sep">to</span>
+              <input type="date" className="field-input cal-filter-input"
+                value={filters.dateTo} onChange={e => setF('dateTo', e.target.value)} />
+            </div>
+            <div className="cal-filter-divider" />
+            <div className="cal-filter-group">
+              <span className="cal-filter-label">Time range</span>
+              <input type="time" className="field-input cal-filter-input"
+                value={filters.timeFrom} onChange={e => setF('timeFrom', e.target.value)} />
+              <span className="cal-filter-sep">to</span>
+              <input type="time" className="field-input cal-filter-input"
+                value={filters.timeTo} onChange={e => setF('timeTo', e.target.value)} />
+            </div>
+            <div className="cal-filter-divider" />
+            <div className="cal-filter-group">
+              <span className="cal-filter-label">Category</span>
+              <select className="field-input cal-filter-input"
+                value={filters.category} onChange={e => setF('category', e.target.value)}>
+                <option value="">All categories</option>
+                {['Academics','Gym','Sports','Cooking','Recreation'].map(c =>
+                  <option key={c}>{c}</option>
+                )}
+              </select>
+            </div>
+            {hasFilters && (
+              <button className="btn btn-outline" style={{ fontSize: 12 }}
+                onClick={() => setFilters(EMPTY_FILTERS)}>
+                Clear
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="cal-body">
           {/* ── Grid ── */}
-          <div className={`cal-grid-wrap ${selected ? 'has-panel' : ''}`}>
+          <div className={`cal-grid-wrap ${selected || queryResults ? 'has-panel' : ''}`}>
             {/* Weekday headers */}
             <div className="cal-grid">
               {WEEKDAYS.map(d => <div key={d} className="cal-wday">{d}</div>)}
@@ -249,6 +319,58 @@ export default function CalendarPage() {
                     )
                   })
                 }
+              </div>
+            </div>
+          )}
+
+          {/* ── Query results panel ── */}
+          {showQuery && queryResults && (
+            <div className="cal-panel">
+              <div className="cal-panel-head">
+                <div>
+                  <div className="cal-panel-date-label">Query Results</div>
+                  <div className="cal-panel-count">
+                    {queryResults.length} event{queryResults.length !== 1 ? 's' : ''} found
+                  </div>
+                </div>
+              </div>
+              <div className="cal-panel-list">
+                {queryResults.length === 0
+                  ? <div className="cal-panel-empty">No events match your filters.</div>
+                  : queryResults.map(ev => (
+                    <div key={ev.id} className="cal-panel-event cal-query-result"
+                      onClick={() => {
+                        const d = String(ev.date).slice(0, 10)
+                        setSelected(d)
+                        setYear(parseInt(d.slice(0,4)))
+                        setMonth(parseInt(d.slice(5,7)) - 1)
+                      }}>
+                      <div className="cal-panel-event-accent"
+                        style={{ background: CATEGORY_TEXT[ev.category] || '#3b82f6' }} />
+                      <div className="cal-panel-event-info">
+                        <div className="cal-query-date">{String(ev.date).slice(0, 10)}</div>
+                        <div className="cal-panel-event-name">{ev.title}</div>
+                        <div className="cal-panel-event-sub">
+                          {String(ev.start_time).slice(0,5)} – {String(ev.end_time).slice(0,5)}
+                          &nbsp;·&nbsp;{ev.duration_minutes} min
+                        </div>
+                        <span className={`badge ${CATEGORY_COLOR[ev.category] ?? ''}`}
+                          style={{ marginTop: 4 }}>{ev.category}</span>
+                      </div>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+          )}
+
+          {showQuery && !hasFilters && (
+            <div className="cal-panel">
+              <div className="cal-panel-head">
+                <div className="cal-panel-date-label">Query Events</div>
+              </div>
+              <div className="cal-panel-empty" style={{ padding: '32px 20px' }}>
+                Set a date range, time range, or category above to search your events.
               </div>
             </div>
           )}

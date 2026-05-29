@@ -159,7 +159,7 @@ export default function RegisterPage() {
               Your account is created and two-factor authentication is active.
               Every login will require your authenticator app.
             </div>
-            <button className="btn btn-primary auth-btn" style={{ marginTop: 16 }} onClick={() => navigate('/')}>
+            <button className="btn btn-primary auth-btn" style={{ marginTop: 16 }} onClick={() => navigate('/dashboard')}>
               Go to dashboard
             </button>
           </>

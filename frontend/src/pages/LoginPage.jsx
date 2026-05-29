@@ -41,7 +41,7 @@ export default function LoginPage() {
     setLoading(false)
     if (!res.ok) { setError(data.error); return }
     setToken(data.token)
-    navigate('/')
+    navigate('/dashboard')
   }
 
   return (

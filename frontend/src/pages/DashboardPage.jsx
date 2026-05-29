@@ -57,7 +57,7 @@ export default function DashboardPage() {
     else document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  const handleSignOut = () => { clearToken(); navigate('/login') }
+  const handleSignOut = () => { clearToken(); navigate('/') }
 
   const exportWithAuth = (path) => {
     apiFetch(path).then(async r => {
