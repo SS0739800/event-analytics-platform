@@ -3,22 +3,24 @@ import os
 import tempfile
 import time
 import uuid
+from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
 
-from flask import Flask, jsonify, request, send_file, send_from_directory, after_this_request
+from flask import Flask, Response, jsonify, request, send_file, send_from_directory, after_this_request
 from flask_cors import CORS
 
 from src.analytics.subject_stats import SubjectStats
 from src.analytics.time_stats import TimeStats
 from src.analytics.trends import Trends
 from src.auth.password import check_password
-from src.auth.tokens import create_token, verify_token
+from src.auth.tokens import create_token, verify_token, create_ical_token, verify_ical_token
 from src.auth.totp import get_qr_base64, verify_code
 from src.db.events import fetch_events_df, create_event, update_event, delete_event, create_events_bulk, delete_series, check_overlap
 from src.db.profiles import (
     email_taken, create_profile_from_pending,
-    get_profile_by_email, get_profile_by_id, get_profile_by_id_full
+    get_profile_by_email, get_profile_by_id, get_profile_by_id_full,
+    get_categories, update_categories,
 )
 from src.export.excel_exporter import ExcelExporter
 from src.export.pdf_exporter import PDFExporter
@@ -297,9 +299,55 @@ def api_parse_event(user_id):
         return jsonify({"error": "No text provided"}), 400
     from src.ai.parser import parse_event_smart
     try:
-        return jsonify(parse_event_smart(text))
+        categories = get_categories(user_id)
+        return jsonify(parse_event_smart(text, categories))
     except Exception as e:
         return jsonify({"error": f"Could not parse: {e}"}), 422
+
+
+@app.route("/api/query", methods=["POST"])
+@require_auth
+def api_query(user_id):
+    body = request.get_json()
+    question = (body.get("question") or "").strip()
+    if not question:
+        return jsonify({"error": "No question provided"}), 400
+    from src.ai.query import answer_query
+    df, *_ = _analytics(user_id)
+    try:
+        return jsonify({"answer": answer_query(question, df)})
+    except Exception as e:
+        return jsonify({"error": f"Could not answer: {e}"}), 422
+
+
+@app.route("/api/weekly-summary")
+@require_auth
+def api_weekly_summary(user_id):
+    from src.ai.summary import generate_weekly_summary
+    df, *_ = _analytics(user_id)
+    try:
+        return jsonify({"summary": generate_weekly_summary(df)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ── Categories ────────────────────────────────────────────────────────────────
+
+@app.route("/api/categories", methods=["GET"])
+@require_auth
+def api_get_categories(user_id):
+    return jsonify(get_categories(user_id))
+
+
+@app.route("/api/categories", methods=["PUT"])
+@require_auth
+def api_update_categories(user_id):
+    body = request.get_json()
+    categories = body.get("categories", [])
+    if not isinstance(categories, list) or not categories:
+        return jsonify({"error": "categories must be a non-empty list"}), 400
+    update_categories(user_id, [c.strip() for c in categories if c.strip()])
+    return jsonify({"categories": get_categories(user_id)})
 
 
 @app.route("/api/events/validate-bulk", methods=["POST"])
@@ -433,6 +481,49 @@ def api_top_events(user_id):
     return jsonify(events)
 
 
+# ── iCal helpers ─────────────────────────────────────────────────────────────
+
+def _fold(line: str) -> str:
+    """Fold long iCal lines at 75 characters per RFC 5545."""
+    result, chunk = [], line
+    while len(chunk.encode()) > 75:
+        result.append(chunk[:75])
+        chunk = " " + chunk[75:]
+    result.append(chunk)
+    return "\r\n".join(result)
+
+
+def _build_ical(df) -> str:
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//EventAnalytics//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "X-WR-CALNAME:EventAnalytics",
+    ]
+    for _, row in df.iterrows():
+        d     = str(row["date"])[:10].replace("-", "")
+        t0    = str(row["start_time"])[:5].replace(":", "")
+        t1    = str(row["end_time"])[:5].replace(":", "")
+        title = str(row["title"]).replace(",", "\\,").replace(";", "\\;")
+        cat   = str(row["category"])
+        lines += [
+            "BEGIN:VEVENT",
+            f"UID:event-{row['id']}@eventanalytics",
+            f"DTSTAMP:{stamp}",
+            f"DTSTART:{d}T{t0}00",
+            f"DTEND:{d}T{t1}00",
+            _fold(f"SUMMARY:{title}"),
+            f"CATEGORIES:{cat}",
+            f"DESCRIPTION:Duration: {row['duration_minutes']} min",
+            "END:VEVENT",
+        ]
+    lines.append("END:VCALENDAR")
+    return "\r\n".join(lines)
+
+
 # ── Export ────────────────────────────────────────────────────────────────────
 
 @app.route("/export/csv")
@@ -487,6 +578,38 @@ def export_pdf(user_id):
         return response
 
     return send_file(tmp, mimetype="application/pdf", as_attachment=True, download_name="events_report.pdf")
+
+
+@app.route("/export/ical")
+@require_auth
+def export_ical(user_id):
+    df, *_ = _analytics(user_id)
+    content = _build_ical(df)
+    return Response(
+        content,
+        mimetype="text/calendar",
+        headers={"Content-Disposition": "attachment; filename=events.ics"},
+    )
+
+
+@app.route("/api/ical-token")
+@require_auth
+def api_ical_token(user_id):
+    token = create_ical_token(user_id)
+    base = request.host_url.rstrip("/")
+    return jsonify({"url": f"{base}/export/ical/subscribe/{token}"})
+
+
+@app.route("/export/ical/subscribe/<token>")
+def export_ical_subscribe(token):
+    try:
+        payload = verify_ical_token(token)
+        user_id = payload["sub"]
+    except Exception:
+        return jsonify({"error": "Invalid or expired token"}), 401
+    df = fetch_events_df(user_id)
+    content = _build_ical(df)
+    return Response(content, mimetype="text/calendar")
 
 
 # ── Serve React ───────────────────────────────────────────────────────────────

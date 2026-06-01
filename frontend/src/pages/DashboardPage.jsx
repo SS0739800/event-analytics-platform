@@ -10,6 +10,12 @@ import EventModal from '../components/EventModal'
 import AIInsightsCard from '../components/AIInsightsCard'
 import AIParseModal from '../components/AIParseModal'
 import BulkPreviewModal from '../components/BulkPreviewModal'
+import WeeklySummaryCard from '../components/WeeklySummaryCard'
+import QueryPanel from '../components/QueryPanel'
+import ICalModal from '../components/ICalModal'
+import CategoryModal from '../components/CategoryModal'
+import { useCategories } from '../lib/useCategories'
+import { invalidateCategoriesCache } from '../lib/categories'
 
 const NAV = [
   { id: 'overview',   icon: '▦',  label: 'Overview' },
@@ -37,6 +43,9 @@ export default function DashboardPage() {
   const [aiModalOpen, setAiModalOpen] = useState(false)
   const [bulkEvents, setBulkEvents] = useState([])
   const [bulkPreviewOpen, setBulkPreviewOpen] = useState(false)
+  const [icalOpen, setIcalOpen] = useState(false)
+  const [catModalOpen, setCatModalOpen] = useState(false)
+  const categories = useCategories()
   const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
@@ -94,6 +103,11 @@ export default function DashboardPage() {
             onKeyDown={e => e.key === 'Enter' && navigate('/calendar')}>
             <span className="nav-icon">📅</span>Calendar
           </div>
+          <div className="nav-item" role="button" tabIndex={0}
+            onClick={() => setCatModalOpen(true)}
+            onKeyDown={e => e.key === 'Enter' && setCatModalOpen(true)}>
+            <span className="nav-icon">🏷</span>Categories
+          </div>
         </nav>
 
         <div className="sidebar-user">
@@ -116,6 +130,7 @@ export default function DashboardPage() {
           <div className="top-bar-right">
             <button className="btn btn-outline" onClick={() => { setEditEvent(null); setModalOpen(true) }}>+ Add Event</button>
             <button className="btn btn-ai" onClick={() => setAiModalOpen(true)}>✨ Add with AI</button>
+            <button className="btn btn-outline" onClick={() => setIcalOpen(true)}>📅 iCal</button>
             <button className="btn btn-outline" onClick={() => exportWithAuth('/export/csv')}>↓ CSV</button>
             <button className="btn btn-outline" onClick={() => exportWithAuth('/export/excel')}>↓ Excel</button>
             <button className="btn btn-primary" onClick={() => exportWithAuth('/export/pdf')}>↓ PDF</button>
@@ -131,8 +146,12 @@ export default function DashboardPage() {
               <StatCard color="orange" icon="🏷" label="Activity Categories" value={stats?.categories} />
               <StatCard color="purple" icon="⏰" label="Avg Duration (min)"  value={stats?.avg_duration} />
             </div>
-            <div style={{ marginTop: 14 }}>
+            <div className="grid cols-2" style={{ marginTop: 14 }}>
               <AIInsightsCard refreshKey={refreshKey} />
+              <WeeklySummaryCard refreshKey={refreshKey} />
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <QueryPanel />
             </div>
           </section>
 
@@ -217,6 +236,16 @@ export default function DashboardPage() {
           prefill={editEvent ? null : aiPrefill}
           onClose={() => { setModalOpen(false); setAiPrefill(null) }}
           onSaved={refresh}
+        />
+      )}
+
+      {icalOpen && <ICalModal onClose={() => setIcalOpen(false)} />}
+
+      {catModalOpen && (
+        <CategoryModal
+          categories={categories}
+          onClose={() => setCatModalOpen(false)}
+          onSaved={(newCats) => { invalidateCategoriesCache(); refresh() }}
         />
       )}
     </div>

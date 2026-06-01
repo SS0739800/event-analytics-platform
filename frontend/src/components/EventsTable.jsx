@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { apiFetch } from '../lib/api'
-
-const CATEGORY_COLORS = {
-  Gym: 'blue', Academics: 'green', Sports: 'orange', Recreation: 'purple', Cooking: 'red',
-}
+import { useCategories } from '../lib/useCategories'
+import { getCategoryStyle } from '../lib/categories'
 
 export default function EventsTable({ data, onEdit, onDeleted }) {
+  const categories = useCategories()
   const [confirmId, setConfirmId] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -82,7 +81,7 @@ export default function EventsTable({ data, onEdit, onDeleted }) {
                 {event.title}
                 {event.series_id && <span className="series-dot" title="Part of a series">●</span>}
               </td>
-              <td><span className={`badge ${CATEGORY_COLORS[event.category] ?? ''}`}>{event.category}</span></td>
+              <td><span className={`badge ${getCategoryStyle(event.category, categories).badge}`}>{event.category}</span></td>
               <td style={{ color: '#64748b' }}>{String(event.start_time).slice(0, 5)} – {String(event.end_time).slice(0, 5)}</td>
               <td>{event.duration_minutes} min</td>
               <td>

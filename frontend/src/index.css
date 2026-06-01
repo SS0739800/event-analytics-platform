@@ -875,6 +875,81 @@ select.field-input { cursor: pointer; }
 .icon-btn-danger:hover { background: #fef2f2; }
 .events-table-confirm-row td { background: #fff8f8; }
 
+/* ── Extra badge colours (custom categories) ── */
+.badge.teal   { background: #f0fdfa; color: #0d9488; border-color: #99f6e4; }
+.badge.pink   { background: #fdf4ff; color: #a21caf; border-color: #f0abfc; }
+.badge.indigo { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+.badge.amber  { background: #fefce8; color: #b45309; border-color: #fde68a; }
+.badge.rose   { background: #fff1f2; color: #be123c; border-color: #fecdd3; }
+
+/* ── Weekly summary card ── */
+.weekly-summary-card { background: linear-gradient(135deg, #fefeff 0%, #f0fdf4 100%); border-color: #bbf7d0; }
+.weekly-summary-body { padding: 16px 20px; }
+.weekly-summary-text { font-size: 13.5px; color: var(--text-primary); line-height: 1.7; }
+
+/* ── Query panel ── */
+.query-panel {}
+.query-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+
+.query-examples { display: flex; flex-wrap: wrap; gap: 6px; }
+.query-example-chip {
+  font-size: 11.5px;
+  font-family: inherit;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--page-bg);
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.query-example-chip:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+.query-input-row { display: flex; gap: 8px; }
+.query-input-row .field-input { flex: 1; }
+
+.query-answer {
+  background: var(--page-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+.query-answer-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); margin-bottom: 6px; }
+.query-answer-text  { font-size: 13.5px; color: var(--text-primary); line-height: 1.65; }
+
+/* ── iCal modal ── */
+.ical-option { display: flex; flex-direction: column; gap: 8px; }
+.ical-option-title { font-size: 13.5px; font-weight: 700; color: var(--text-primary); }
+.ical-option-desc  { font-size: 13px; color: var(--text-sub); line-height: 1.5; }
+.ical-divider { height: 1px; background: var(--border); }
+.ical-url-row { display: flex; gap: 8px; }
+.ical-url-row .field-input { flex: 1; }
+.ical-how { font-size: 11.5px; color: var(--text-muted); line-height: 1.8; margin-top: 4px; }
+
+/* ── Category modal ── */
+.cat-list { display: flex; flex-wrap: wrap; gap: 6px; min-height: 36px; }
+.cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12.5px;
+  background: var(--page-bg);
+  color: var(--text-primary);
+}
+.cat-chip-del {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 10px;
+  color: var(--text-muted);
+  padding: 0;
+  line-height: 1;
+}
+.cat-chip-del:hover { color: var(--red); }
+
 /* ── Landing page ── */
 .landing {
   min-height: 100vh;

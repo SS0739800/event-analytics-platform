@@ -42,3 +42,19 @@ def verify_pending_token(token: str) -> dict:
     if payload.get("type") != "pending_registration":
         raise ValueError("Not a pending registration token")
     return payload
+
+
+def create_ical_token(user_id: str) -> str:
+    payload = {
+        "sub": user_id,
+        "scope": "ical",
+        "exp": datetime.now(timezone.utc) + timedelta(days=365),
+    }
+    return jwt.encode(payload, _secret(), algorithm=_ALGO)
+
+
+def verify_ical_token(token: str) -> dict:
+    payload = jwt.decode(token, _secret(), algorithms=[_ALGO])
+    if payload.get("scope") != "ical":
+        raise ValueError("Not an iCal token")
+    return payload

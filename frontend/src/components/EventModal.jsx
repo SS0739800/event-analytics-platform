@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
+import { useCategories } from '../lib/useCategories'
 
-const CATEGORIES = ['Academics', 'Gym', 'Sports', 'Cooking', 'Recreation']
-const EMPTY = { title: '', category: 'Academics', date: '', start_time: '', end_time: '', duration_minutes: '' }
+const EMPTY = { title: '', category: '', date: '', start_time: '', end_time: '', duration_minutes: '' }
 
 function calcDuration(start, end) {
   if (!start || !end) return ''
@@ -13,6 +13,7 @@ function calcDuration(start, end) {
 }
 
 export default function EventModal({ event, prefill, onClose, onSaved }) {
+  const categories = useCategories()
   const [form, setForm] = useState(EMPTY)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -23,20 +24,20 @@ export default function EventModal({ event, prefill, onClose, onSaved }) {
     if (event) {
       setForm({
         title: event.title,
-        category: event.category,
+        category: event.category || categories[0] || '',
         date: event.date?.slice(0, 10) ?? '',
         start_time: event.start_time?.slice(0, 5) ?? '',
         end_time: event.end_time?.slice(0, 5) ?? '',
         duration_minutes: event.duration_minutes,
       })
     } else if (prefill) {
-      setForm({ ...EMPTY, ...prefill })
+      setForm({ ...EMPTY, category: categories[0] || '', ...prefill })
     } else {
-      setForm(EMPTY)
+      setForm({ ...EMPTY, category: categories[0] || '' })
     }
     setConflict(null)
     setError('')
-  }, [event, prefill])
+  }, [event, prefill, categories])
 
   const set = (k, v) => {
     setConflict(null)
@@ -137,7 +138,7 @@ export default function EventModal({ event, prefill, onClose, onSaved }) {
           <div className="field">
             <label className="field-label">Category</label>
             <select className="field-input" value={form.category} onChange={e => set('category', e.target.value)}>
-              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+              {categories.map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
           <div className="field">

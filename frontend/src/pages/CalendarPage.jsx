@@ -2,10 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, clearToken } from '../lib/api'
 import EventModal from '../components/EventModal'
-
-const CATEGORY_BG   = { Gym: '#eff6ff', Academics: '#f0fdf4', Sports: '#fffbeb', Recreation: '#f5f3ff', Cooking: '#fef2f2' }
-const CATEGORY_TEXT = { Gym: '#2563eb', Academics: '#059669', Sports: '#d97706', Recreation: '#7c3aed', Cooking: '#dc2626' }
-const CATEGORY_COLOR = { Gym: 'blue', Academics: 'green', Sports: 'orange', Recreation: 'purple', Cooking: 'red' }
+import { useCategories } from '../lib/useCategories'
+import { getCategoryStyle } from '../lib/categories'
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
@@ -29,6 +27,8 @@ function dateKey(d) {
 
 export default function CalendarPage() {
   const navigate = useNavigate()
+  const categories = useCategories()
+  const catStyle = (cat) => getCategoryStyle(cat, categories)
   const today = new Date()
   const [year,  setYear]  = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
@@ -229,7 +229,7 @@ export default function CalendarPage() {
                     <div className="cal-chips">
                       {shown.map((ev, i) => (
                         <div key={i} className="cal-chip"
-                          style={{ background: CATEGORY_BG[ev.category], color: CATEGORY_TEXT[ev.category] }}>
+                          style={{ background: catStyle(ev.category).bg, color: catStyle(ev.category).text }}>
                           <span className="cal-chip-time">{String(ev.start_time).slice(0,5)}</span>
                           <span className="cal-chip-title">{ev.title}</span>
                         </div>
@@ -297,7 +297,7 @@ export default function CalendarPage() {
                     return (
                       <div key={ev.id} className="cal-panel-event">
                         <div className="cal-panel-event-accent"
-                          style={{ background: CATEGORY_TEXT[ev.category] || '#3b82f6' }} />
+                          style={{ background: catStyle(ev.category).text || '#3b82f6' }} />
                         <div className="cal-panel-event-info">
                           <div className="cal-panel-event-name">
                             {ev.title}
@@ -307,7 +307,7 @@ export default function CalendarPage() {
                             {String(ev.start_time).slice(0,5)} – {String(ev.end_time).slice(0,5)}
                             &nbsp;·&nbsp;{ev.duration_minutes} min
                           </div>
-                          <span className={`badge ${CATEGORY_COLOR[ev.category] ?? ''}`}
+                          <span className={`badge ${catStyle(ev.category).badge ?? ''}`}
                             style={{ marginTop: 4 }}>{ev.category}</span>
                         </div>
                         <div className="cal-panel-event-btns">
@@ -346,7 +346,7 @@ export default function CalendarPage() {
                         setMonth(parseInt(d.slice(5,7)) - 1)
                       }}>
                       <div className="cal-panel-event-accent"
-                        style={{ background: CATEGORY_TEXT[ev.category] || '#3b82f6' }} />
+                        style={{ background: catStyle(ev.category).text || '#3b82f6' }} />
                       <div className="cal-panel-event-info">
                         <div className="cal-query-date">{String(ev.date).slice(0, 10)}</div>
                         <div className="cal-panel-event-name">{ev.title}</div>
@@ -354,7 +354,7 @@ export default function CalendarPage() {
                           {String(ev.start_time).slice(0,5)} – {String(ev.end_time).slice(0,5)}
                           &nbsp;·&nbsp;{ev.duration_minutes} min
                         </div>
-                        <span className={`badge ${CATEGORY_COLOR[ev.category] ?? ''}`}
+                        <span className={`badge ${catStyle(ev.category).badge ?? ''}`}
                           style={{ marginTop: 4 }}>{ev.category}</span>
                       </div>
                     </div>
