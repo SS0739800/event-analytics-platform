@@ -18,7 +18,3 @@ class TimeStats:
 
     def busiest_months(self) -> dict[str, int]:
         return self.df["month"].value_counts().to_dict()
-
-    def total_hours_per_day(self) -> dict[str, float]:
-        daily = self.df.groupby("date")["duration_minutes"].sum() / 60
-        return {str(k): round(v, 2) for k, v in daily.items()}

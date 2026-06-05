@@ -1,6 +1,6 @@
 -- ================================================================
 -- Event Analytics Platform — Profiles table (Supabase Auth version)
--- NOTE: Superseded by 003_custom_auth.sql
+-- NOTE: Superseded by custom_auth.sql
 -- Kept for reference only
 -- ================================================================
 

@@ -70,6 +70,7 @@ export default function DashboardPage() {
 
   const exportWithAuth = (path) => {
     apiFetch(path).then(async r => {
+      if (!r.ok) { alert('Export failed — please try again.'); return }
       const blob = await r.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')

@@ -24,6 +24,10 @@ export default function AIParseModal({ onClose, onParsed, onBulkParsed }) {
     }
 
     const parsed = await res.json()
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      setError('Could not parse — try rephrasing')
+      return
+    }
     if (parsed.length === 1) {
       onParsed(parsed[0])
     } else {

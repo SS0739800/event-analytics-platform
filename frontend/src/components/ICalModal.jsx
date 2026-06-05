@@ -21,6 +21,7 @@ export default function ICalModal({ onClose }) {
 
   const download = () => {
     apiFetch('/export/ical').then(async r => {
+      if (!r.ok) { alert('Download failed — please try again.'); return }
       const blob = await r.blob()
       const a = document.createElement('a')
       a.href = URL.createObjectURL(blob)

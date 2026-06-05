@@ -25,22 +25,22 @@ def verify_token(token: str) -> dict:
     return jwt.decode(token, _secret(), algorithms=[_ALGO])
 
 
-def create_pending_token(email: str, full_name: str, password_hash: str, totp_secret: str) -> str:
+def create_login_token(user_id: str) -> str:
+    """Short-lived token issued after a successful password check; required to
+    complete the MFA step. Binds /auth/login/verify to /auth/login so the
+    password stage cannot be skipped."""
     payload = {
-        "type": "pending_registration",
-        "email": email,
-        "full_name": full_name,
-        "password_hash": password_hash,
-        "totp_secret": totp_secret,
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=10),
+        "sub": user_id,
+        "scope": "login_mfa",
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=5),
     }
     return jwt.encode(payload, _secret(), algorithm=_ALGO)
 
 
-def verify_pending_token(token: str) -> dict:
+def verify_login_token(token: str) -> dict:
     payload = jwt.decode(token, _secret(), algorithms=[_ALGO])
-    if payload.get("type") != "pending_registration":
-        raise ValueError("Not a pending registration token")
+    if payload.get("scope") != "login_mfa":
+        raise ValueError("Not a login challenge token")
     return payload
 
 

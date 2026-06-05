@@ -190,7 +190,7 @@ export default function CalendarPage() {
               <select className="field-input cal-filter-input"
                 value={filters.category} onChange={e => setF('category', e.target.value)}>
                 <option value="">All categories</option>
-                {['Academics','Gym','Sports','Cooking','Recreation'].map(c =>
+                {categories.map(c =>
                   <option key={c}>{c}</option>
                 )}
               </select>

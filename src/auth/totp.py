@@ -20,4 +20,4 @@ def get_qr_base64(email: str, secret: str) -> str:
 
 
 def verify_code(secret: str, code: str) -> bool:
-    return pyotp.TOTP(secret).verify(code, valid_window=4)
+    return pyotp.TOTP(secret).verify(code, valid_window=1)

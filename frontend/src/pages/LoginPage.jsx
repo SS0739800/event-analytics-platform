@@ -7,7 +7,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
-  const [userId, setUserId] = useState(null)
+  const [loginToken, setLoginToken] = useState(null)
   const [step, setStep] = useState('password')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -24,7 +24,7 @@ export default function LoginPage() {
     const data = await res.json()
     setLoading(false)
     if (!res.ok) { setError(data.error); return }
-    setUserId(data.user_id)
+    setLoginToken(data.login_token)
     setStep('mfa')
   }
 
@@ -35,7 +35,7 @@ export default function LoginPage() {
     const res = await fetch('/auth/login/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, code }),
+      body: JSON.stringify({ login_token: loginToken, code }),
     })
     const data = await res.json()
     setLoading(false)

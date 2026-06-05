@@ -14,7 +14,10 @@ from src.analytics.subject_stats import SubjectStats
 from src.analytics.time_stats import TimeStats
 from src.analytics.trends import Trends
 from src.auth.password import check_password
-from src.auth.tokens import create_token, verify_token, create_ical_token, verify_ical_token
+from src.auth.tokens import (
+    create_token, verify_token, create_ical_token, verify_ical_token,
+    create_login_token, verify_login_token,
+)
 from src.auth.totp import get_qr_base64, verify_code
 from src.db.events import fetch_events_df, create_event, update_event, delete_event, create_events_bulk, delete_series, check_overlap
 from src.db.profiles import (
@@ -141,14 +144,18 @@ def auth_login():
     if not profile or not check_password(password, profile["password_hash"]):
         return jsonify({"error": "Invalid email or password"}), 401
 
-    return jsonify({"user_id": profile["id"]})
+    return jsonify({"login_token": create_login_token(profile["id"])})
 
 
 @app.route("/auth/login/verify", methods=["POST"])
 def auth_login_verify():
     body = request.get_json()
-    user_id = body.get("user_id")
     code = body.get("code", "")
+
+    try:
+        user_id = verify_login_token(body.get("login_token") or "")["sub"]
+    except Exception:
+        return jsonify({"error": "Login session expired — please sign in again"}), 401
 
     profile = get_profile_by_id_full(user_id)
     if not profile:
@@ -182,14 +189,13 @@ def api_get_profile(user_id):
 @require_auth
 def api_get_events(user_id):
     df = fetch_events_df(user_id)
-    records = df.to_dict(orient="records")
-    for r in records:
-        for k, v in r.items():
-            if hasattr(v, "isoformat"):
-                r[k] = v.isoformat()
-            elif not isinstance(v, (int, float, bool, type(None))):
-                r[k] = str(v)
-    return jsonify(records)
+    # Let pandas serialize: it writes `null` for NaN/NaT (jsonify would emit the
+    # invalid `NaN` token, which makes the client's r.json() throw) and coerces
+    # numpy scalars to native types.
+    return Response(
+        df.to_json(orient="records", date_format="iso"),
+        mimetype="application/json",
+    )
 
 
 @app.route("/api/events", methods=["POST"])
@@ -467,29 +473,23 @@ def api_trends(user_id):
     })
 
 
-@app.route("/api/top-events")
-@require_auth
-def api_top_events(user_id):
-    _, subject, *_ = _analytics(user_id)
-    events = subject.top_events(5)
-    for e in events:
-        for k, v in e.items():
-            if hasattr(v, "isoformat"):
-                e[k] = v.isoformat()
-            elif not isinstance(v, (int, float, bool, type(None))):
-                e[k] = str(v)
-    return jsonify(events)
-
-
 # ── iCal helpers ─────────────────────────────────────────────────────────────
 
 def _fold(line: str) -> str:
-    """Fold long iCal lines at 75 characters per RFC 5545."""
-    result, chunk = [], line
-    while len(chunk.encode()) > 75:
-        result.append(chunk[:75])
-        chunk = " " + chunk[75:]
-    result.append(chunk)
+    """Fold long iCal lines at 75 octets per RFC 5545, never splitting a
+    multi-byte character. Continuation lines start with a space (which counts
+    toward the octet limit)."""
+    if len(line.encode("utf-8")) <= 75:
+        return line
+    result, chunk = [], b""
+    for ch in line:
+        ch_bytes = ch.encode("utf-8")
+        if len(chunk) + len(ch_bytes) > 75:
+            result.append(chunk.decode("utf-8"))
+            chunk = b" " + ch_bytes
+        else:
+            chunk += ch_bytes
+    result.append(chunk.decode("utf-8"))
     return "\r\n".join(result)
 
 
