@@ -7,22 +7,47 @@ load_dotenv()
 
 _ALGO = "HS256"
 
+# Sessions slide — require_auth reissues a token on every request, so this
+# clock only runs down while the user is idle.
+IDLE_TIMEOUT_MINUTES = 30
+
+# ...but not forever. Renewal stops this long after the original login.
+ABSOLUTE_SESSION_DAYS = 7
+
 
 def _secret() -> str:
     return os.environ["JWT_SECRET"]
 
 
-def create_token(user_id: str, email: str) -> str:
+def create_token(user_id: str, email: str, session_start: int | None = None) -> str:
+    """session_start carries the original login time across renewals. Leave it
+    out when the user actually signs in."""
+    now = datetime.now(timezone.utc)
     payload = {
         "sub": user_id,
         "email": email,
-        "exp": datetime.now(timezone.utc) + timedelta(days=7),
+        "session_start": session_start if session_start is not None else int(now.timestamp()),
+        "exp": now + timedelta(minutes=IDLE_TIMEOUT_MINUTES),
     }
     return jwt.encode(payload, _secret(), algorithm=_ALGO)
 
 
 def verify_token(token: str) -> dict:
     return jwt.decode(token, _secret(), algorithms=[_ALGO])
+
+
+def renew_token(payload: dict) -> str | None:
+    """A fresh token with the idle window pushed forward, or None if the session
+    hit the absolute cap — or predates this scheme, so there's nothing to
+    measure. None doesn't sign anyone out; the current token still works until
+    its own exp."""
+    session_start = payload.get("session_start")
+    if session_start is None:
+        return None
+    age = datetime.now(timezone.utc).timestamp() - session_start
+    if age > ABSOLUTE_SESSION_DAYS * 86400:
+        return None
+    return create_token(payload["sub"], payload.get("email", ""), session_start=session_start)
 
 
 def create_login_token(user_id: str) -> str:

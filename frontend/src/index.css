@@ -495,6 +495,17 @@ body {
   margin-bottom: 16px;
 }
 
+/* Informational, not a failure — signed out on idle or an expired session. */
+.auth-notice {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
 .auth-success {
   background: #f0fdf4;
   border: 1px solid #bbf7d0;

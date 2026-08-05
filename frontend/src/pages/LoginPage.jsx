@@ -1,9 +1,16 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { setToken } from '../lib/api'
+
+const SIGNED_OUT_REASONS = {
+  idle: 'You were signed out after 30 minutes of inactivity.',
+  expired: 'Your session expired. Please sign in again.',
+}
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const signedOutMessage = SIGNED_OUT_REASONS[searchParams.get('reason')]
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
@@ -56,6 +63,7 @@ export default function LoginPage() {
           <>
             <h1 className="auth-title">Sign in</h1>
             <p className="auth-subtitle">Access your personal activity dashboard</p>
+            {signedOutMessage && !error && <div className="auth-notice">{signedOutMessage}</div>}
             {error && <div className="auth-error">{error}</div>}
             <form onSubmit={handlePassword} className="auth-form">
               <div className="field">

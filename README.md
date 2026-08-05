@@ -360,7 +360,28 @@ Login:
 
 The login challenge token binds the two steps together: the MFA step only accepts a token issued by a successful password check, so the password stage cannot be skipped.
 
-The JWT is stored in `localStorage` and sent as `Authorization: Bearer <token>` on every API request. It expires after 7 days.
+The JWT is stored in `localStorage` and sent as `Authorization: Bearer <token>` on every API request.
+
+### Session timeout
+
+Sessions expire after **30 minutes of inactivity**, not 30 minutes flat. The window slides:
+
+- Every authenticated response carries an `X-Renewed-Token` header with the expiry pushed 30 minutes further out; `apiFetch` swaps it into `localStorage`. So an active user is never interrupted.
+- Renewal stops **7 days** after the original login (`session_start` is carried across renewals). Past that, the current token runs out normally and the user signs in again.
+- Both limits live in `src/auth/tokens.py` as `IDLE_TIMEOUT_MINUTES` and `ABSOLUTE_SESSION_DAYS`. `ProtectedRoute` has a matching `IDLE_MS` — keep them in step.
+
+Expiry is enforced by the server; the frontend work is about reacting to it cleanly rather than leaving a dead dashboard on screen:
+
+| Layer | Behaviour |
+|---|---|
+| `useIdleTimeout` | 30 minutes with no mouse/key/scroll/touch → redirect to `/login?reason=idle` |
+| `apiFetch` | Any 401 on a request that carried a token → clear it and redirect. Only fires when a token was sent, so a wrong password on the login form doesn't bounce you |
+| `ProtectedRoute` | Checks the token's `exp`, not just its presence, so a stale tab doesn't flash the dashboard before the first request fails |
+| `storage` listener | Signing out in one tab signs out the others |
+
+A backgrounded tab can have its timers throttled, so `useIdleTimeout` is not the guarantee — the server's 30-minute expiry is.
+
+Tokens issued before this scheme have no `session_start` and are never renewed. They stay valid until their original expiry, then the user logs in and gets a sliding session.
 
 MFA is **mandatory** — every account requires a TOTP authenticator (Google Authenticator, Authy, 1Password, etc.).
 

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
 
-from flask import Flask, Response, jsonify, request, send_file, send_from_directory, after_this_request
+from flask import Flask, Response, jsonify, make_response, request, send_file, send_from_directory, after_this_request
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -14,7 +14,7 @@ from src.analytics.time_stats import TimeStats
 from src.analytics.trends import Trends
 from src.auth.password import check_password
 from src.auth.tokens import (
-    create_token, verify_token, create_ical_token, verify_ical_token,
+    create_token, verify_token, renew_token, create_ical_token, verify_ical_token,
     create_login_token, verify_login_token,
 )
 from src.auth.totp import get_qr_base64, verify_code
@@ -58,7 +58,11 @@ if os.environ.get("TRUST_PROXY") == "1":
 # comma-separated allowlist only if you split the frontend onto its own host.
 _cors_origins = os.environ.get("CORS_ORIGINS", "").strip()
 if _cors_origins:
-    CORS(app, origins=[o.strip() for o in _cors_origins.split(",") if o.strip()])
+    # expose_headers matters here: cross-origin JS can't read X-Renewed-Token
+    # without it, so sessions would silently stop sliding.
+    CORS(app,
+         origins=[o.strip() for o in _cors_origins.split(",") if o.strip()],
+         expose_headers=["X-Renewed-Token"])
 
 
 def require_auth(f):
@@ -72,7 +76,14 @@ def require_auth(f):
             user_id = payload["sub"]
         except Exception:
             return jsonify({"error": "Invalid or expired token"}), 401
-        return f(user_id, *args, **kwargs)
+
+        response = make_response(f(user_id, *args, **kwargs))
+        # Push the idle window forward. None means the session hit its absolute
+        # cap, so we just let the current token run out.
+        renewed = renew_token(payload)
+        if renewed:
+            response.headers["X-Renewed-Token"] = renewed
+        return response
     return decorated
 
 
