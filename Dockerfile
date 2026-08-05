@@ -42,7 +42,12 @@ COPY --from=frontend /app/frontend/dist ./frontend/dist
 RUN useradd --create-home --shell /bin/false appuser && chown -R appuser /app
 USER appuser
 
-EXPOSE 5000
+# Must match the port gunicorn actually binds below. Render injects PORT=10000
+# and routes to the EXPOSEd port, so a mismatch makes its edge return
+# "x-render-routing: no-server" even though the container is healthy and
+# gunicorn logs "Listening at: http://0.0.0.0:10000". 10000 is Render's
+# default, so this agrees with the platform whether PORT is set or not.
+EXPOSE 10000
 
 # --workers 1 is REQUIRED, not a tuning choice, until src/db/pending.py is the
 #   only pending-registration store — which it now is, so this is free to raise.
@@ -51,4 +56,4 @@ EXPOSE 5000
 # --timeout 120 because the Groq-backed routes (/api/insights,
 #   /api/weekly-summary) can exceed gunicorn's 30s default and would otherwise
 #   be killed mid-request and surface as a 502.
-CMD ["sh", "-c", "gunicorn --workers 1 --threads 8 --timeout 120 --bind 0.0.0.0:${PORT:-5000} src.web.app:app"]
+CMD ["sh", "-c", "gunicorn --workers 1 --threads 8 --timeout 120 --bind 0.0.0.0:${PORT:-10000} src.web.app:app"]

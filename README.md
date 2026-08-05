@@ -323,8 +323,10 @@ Gunicorn is Linux-only, so on Windows either build the image:
 
 ```bash
 docker build -t event-analytics .
-docker run --rm -p 5000:5000 --env-file .env -e TRUST_PROXY=0 event-analytics
+docker run --rm -p 5000:10000 --env-file .env -e TRUST_PROXY=0 event-analytics
 ```
+
+The container listens on 10000 (Render's default `PORT`, and what `EXPOSE` advertises), so map it to 5000 locally if you want the usual URL.
 
 …or serve the built bundle through Waitress (`pip install waitress`) to confirm the SPA catch-all and relative API paths work without Vite's proxy:
 
