@@ -121,125 +121,21 @@ BEGIN
 END;
 $$;
 
-
 -- ================================================================
--- Analytics Functions
+-- Analytics Functions — REMOVED
+--
+-- Seven aggregate functions were defined here originally:
+--   get_summary_stats, get_category_stats, get_hourly_stats,
+--   get_daily_stats, get_monthly_trends, get_category_trend,
+--   get_top_events
+--
+-- Nothing ever called them. The application computes all of these
+-- figures in pandas instead, from the DataFrame that
+-- src/db/events.py builds out of get_user_events() — see
+-- src/analytics/ and the /api/stats route in src/web/app.py.
+--
+-- Removed here so a fresh install never creates them.
+-- drop_dead_analytics.sql removes them from databases that already
+-- ran an earlier version of this file. Recoverable from git history
+-- if aggregation is ever moved back into Postgres.
 -- ================================================================
-
-CREATE OR REPLACE FUNCTION public.get_summary_stats(p_user_id UUID)
-RETURNS TABLE(total_events BIGINT, total_minutes BIGINT, category_count BIGINT, avg_duration NUMERIC)
-LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
-  RETURN QUERY
-    SELECT
-      COUNT(*)::BIGINT                              AS total_events,
-      SUM(duration_minutes)::BIGINT                AS total_minutes,
-      COUNT(DISTINCT category)::BIGINT             AS category_count,
-      ROUND(AVG(duration_minutes)::NUMERIC, 1)     AS avg_duration
-    FROM public.events
-    WHERE user_id = p_user_id;
-END;
-$$;
-
--- ─────────────────────────────────────────────────────────────────
-
-CREATE OR REPLACE FUNCTION public.get_category_stats(p_user_id UUID)
-RETURNS TABLE(category TEXT, event_count BIGINT, total_minutes BIGINT, avg_minutes NUMERIC)
-LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
-  RETURN QUERY
-    SELECT
-      e.category,
-      COUNT(*)::BIGINT                             AS event_count,
-      SUM(e.duration_minutes)::BIGINT              AS total_minutes,
-      ROUND(AVG(e.duration_minutes)::NUMERIC, 1)   AS avg_minutes
-    FROM public.events e
-    WHERE e.user_id = p_user_id
-    GROUP BY e.category
-    ORDER BY event_count DESC;
-END;
-$$;
-
--- ─────────────────────────────────────────────────────────────────
-
-CREATE OR REPLACE FUNCTION public.get_hourly_stats(p_user_id UUID)
-RETURNS TABLE(hour INT, event_count BIGINT)
-LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
-  RETURN QUERY
-    SELECT
-      EXTRACT(HOUR FROM start_time)::INT  AS hour,
-      COUNT(*)::BIGINT                    AS event_count
-    FROM public.events
-    WHERE user_id = p_user_id
-    GROUP BY hour
-    ORDER BY hour;
-END;
-$$;
-
--- ─────────────────────────────────────────────────────────────────
-
-CREATE OR REPLACE FUNCTION public.get_daily_stats(p_user_id UUID)
-RETURNS TABLE(day_of_week TEXT, event_count BIGINT)
-LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
-  RETURN QUERY
-    SELECT
-      TO_CHAR(date, 'FMDay')  AS day_of_week,
-      COUNT(*)::BIGINT        AS event_count
-    FROM public.events
-    WHERE user_id = p_user_id
-    GROUP BY day_of_week, EXTRACT(DOW FROM date)
-    ORDER BY EXTRACT(DOW FROM date);
-END;
-$$;
-
--- ─────────────────────────────────────────────────────────────────
-
-CREATE OR REPLACE FUNCTION public.get_monthly_trends(p_user_id UUID)
-RETURNS TABLE(month TEXT, event_count BIGINT, total_minutes BIGINT)
-LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
-  RETURN QUERY
-    SELECT
-      TO_CHAR(date, 'YYYY-MM')      AS month,
-      COUNT(*)::BIGINT              AS event_count,
-      SUM(duration_minutes)::BIGINT AS total_minutes
-    FROM public.events
-    WHERE user_id = p_user_id
-    GROUP BY month
-    ORDER BY month;
-END;
-$$;
-
--- ─────────────────────────────────────────────────────────────────
-
-CREATE OR REPLACE FUNCTION public.get_category_trend(p_user_id UUID)
-RETURNS TABLE(month TEXT, category TEXT, event_count BIGINT)
-LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
-  RETURN QUERY
-    SELECT
-      TO_CHAR(date, 'YYYY-MM')  AS month,
-      e.category,
-      COUNT(*)::BIGINT          AS event_count
-    FROM public.events e
-    WHERE e.user_id = p_user_id
-    GROUP BY month, e.category
-    ORDER BY month, e.category;
-END;
-$$;
-
--- ─────────────────────────────────────────────────────────────────
-
-CREATE OR REPLACE FUNCTION public.get_top_events(p_user_id UUID, p_limit INT DEFAULT 5)
-RETURNS SETOF public.events
-LANGUAGE plpgsql SECURITY DEFINER AS $$
-BEGIN
-  RETURN QUERY
-    SELECT * FROM public.events
-    WHERE user_id = p_user_id
-    ORDER BY duration_minutes DESC
-    LIMIT p_limit;
-END;
-$$;
