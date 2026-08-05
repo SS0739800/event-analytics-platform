@@ -1,14 +1,13 @@
 import io
 import os
 import tempfile
-import time
-import uuid
 from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
 
 from flask import Flask, Response, jsonify, request, send_file, send_from_directory, after_this_request
 from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from src.analytics.subject_stats import SubjectStats
 from src.analytics.time_stats import TimeStats
@@ -20,6 +19,9 @@ from src.auth.tokens import (
 )
 from src.auth.totp import get_qr_base64, verify_code
 from src.db.events import fetch_events_df, create_event, update_event, delete_event, create_events_bulk, delete_series, check_overlap
+from src.db.pending import (
+    create_pending, get_pending, delete_pending, is_expired, purge_expired_pending,
+)
 from src.db.profiles import (
     email_taken, create_profile_from_pending,
     get_profile_by_email, get_profile_by_id, get_profile_by_id_full,
@@ -28,21 +30,35 @@ from src.db.profiles import (
 from src.export.excel_exporter import ExcelExporter
 from src.export.pdf_exporter import PDFExporter
 
-# In-memory store for pending registrations (keyed by UUID, expires in 10 min)
-_pending: dict[str, dict] = {}
-
-
-def _purge_expired_pending():
-    now = time.time()
-    expired = [k for k, v in _pending.items() if now > v["expires"]]
-    for k in expired:
-        _pending.pop(k, None)
-
 ROOT = Path(__file__).resolve().parent.parent.parent
 FRONTEND_DIST = ROOT / "frontend" / "dist"
 
-app = Flask(__name__, static_folder=str(FRONTEND_DIST), static_url_path="")
-CORS(app)
+# static_folder=None disables Flask's built-in static route on purpose. With
+# static_url_path="" it registered /<path:filename>, which is matched before
+# serve_react's /<path:path> and turned every client-side route into a 404 —
+# /dashboard looked for a *file* called "dashboard". Vite's dev server hides
+# this locally, so it would only have shown up in production on a page
+# refresh. serve_react below handles both real assets and the SPA fallback.
+app = Flask(__name__, static_folder=None)
+
+# Behind a TLS-terminating proxy (Render, Railway, Fly), the upstream scheme
+# and host arrive only as X-Forwarded-* headers. Flask ignores them by
+# default, so request.host_url would report http:// and the iCal
+# subscription URL built in api_ical_token() would hand out a long-lived
+# token over plaintext. Opt in explicitly: trusting these headers when
+# nothing is actually in front of the app would let a client spoof them.
+if os.environ.get("TRUST_PROXY") == "1":
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+# In both dev and production the browser talks to this app on a single
+# origin — Vite proxies /api, /auth and /export to Flask locally, and in
+# production Flask serves the built frontend itself (see serve_react below).
+# So no CORS headers are needed at all, and the previous blanket CORS(app)
+# let any website drive the unauthenticated endpoints. Set CORS_ORIGINS to a
+# comma-separated allowlist only if you split the frontend onto its own host.
+_cors_origins = os.environ.get("CORS_ORIGINS", "").strip()
+if _cors_origins:
+    CORS(app, origins=[o.strip() for o in _cors_origins.split(",") if o.strip()])
 
 
 def require_auth(f):
@@ -86,15 +102,13 @@ def auth_register():
     totp_secret = generate_secret()
     password_hash = hash_password(password)
 
-    _purge_expired_pending()
-    pending_id = str(uuid.uuid4())
-    _pending[pending_id] = {
-        "email": email,
-        "full_name": full_name,
-        "password_hash": password_hash,
-        "totp_secret": totp_secret,
-        "expires": time.time() + 600,
-    }
+    purge_expired_pending()
+    pending_id = create_pending(
+        email=email,
+        full_name=full_name,
+        password_hash=password_hash,
+        totp_secret=totp_secret,
+    )
 
     qr = get_qr_base64(email, totp_secret)
     return jsonify({"pending_id": pending_id, "qr_code": qr, "secret": totp_secret})
@@ -106,11 +120,11 @@ def auth_register_verify():
     pending_id = (body.get("pending_id") or "").strip()
     code = body.get("code", "")
 
-    pending = _pending.get(pending_id)
+    pending = get_pending(pending_id)
     if not pending:
         return jsonify({"error": "Registration session not found — please start again"}), 400
-    if time.time() > pending["expires"]:
-        _pending.pop(pending_id, None)
+    if is_expired(pending):
+        delete_pending(pending_id)
         return jsonify({"error": "Registration session expired — please start again"}), 400
 
     if not verify_code(pending["totp_secret"], code):
@@ -126,7 +140,7 @@ def auth_register_verify():
     except ValueError as e:
         return jsonify({"error": str(e)}), 409
 
-    _pending.pop(pending_id, None)
+    delete_pending(pending_id)
     token = create_token(profile["id"], profile["email"])
     return jsonify({
         "token": token,
@@ -617,10 +631,16 @@ def export_ical_subscribe(token):
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def serve_react(path):
-    if path and (FRONTEND_DIST / path).exists():
+    # Real build artefact (/assets/index-*.js, favicon, …) → serve it.
+    # Anything else is a client-side route, so hand back index.html and let
+    # React Router resolve it. send_from_directory refuses to escape the
+    # directory, so a traversal attempt falls through to index.html.
+    if path and (FRONTEND_DIST / path).is_file():
         return send_from_directory(str(FRONTEND_DIST), path)
     return send_from_directory(str(FRONTEND_DIST), "index.html")
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Prefer `python run_web.py`. Never enable debug on a public host: the
+    # Werkzeug debugger exposes an interactive console.
+    app.run(debug=os.environ.get("FLASK_DEBUG") == "1")

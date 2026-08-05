@@ -66,6 +66,7 @@ event-analytics-platform/
 │   ├── db/
 │   │   ├── client.py          # Supabase client singleton
 │   │   ├── events.py          # Event CRUD + overlap check
+│   │   ├── pending.py         # Pending registrations (spans the MFA step)
 │   │   ├── profiles.py        # User profile helpers
 │   │   └── migrations/         # run in the order listed under Setup
 │   │       ├── schema.sql         # Events table + CRUD functions
@@ -73,7 +74,8 @@ event-analytics-platform/
 │   │       ├── series.sql         # series_id column + delete series
 │   │       ├── categories.sql     # Custom categories column on profiles
 │   │       ├── harden_grants.sql  # Revoke anon/authenticated access
-│   │       └── keepalive.sql      # Ping target for the keep-alive job
+│   │       ├── keepalive.sql      # Ping target for the keep-alive job
+│   │       └── pending_registrations.sql  # Durable pending-registration store
 │   ├── export/
 │   │   ├── excel_exporter.py
 │   │   └── pdf_exporter.py
@@ -111,6 +113,8 @@ event-analytics-platform/
 ├── .github/
 │   └── workflows/
 │       └── keepalive.yml      # Daily Supabase ping (anti-idle-pause)
+├── Dockerfile                 # Multi-stage build (Node → Python)
+├── render.yaml                # Render Blueprint
 ├── run_web.py
 ├── start.bat
 ├── requirements.txt
@@ -186,6 +190,7 @@ Open your Supabase project → **SQL Editor** → **New query**, then run each m
 4. `src/db/migrations/categories.sql` — adds the custom `categories` column to profiles
 5. `src/db/migrations/harden_grants.sql` — revokes all `anon` / `authenticated` access
 6. `src/db/migrations/keepalive.sql` — ping target for the keep-alive job (optional; needs step 5 first)
+7. `src/db/migrations/pending_registrations.sql` — durable store for in-flight registrations
 
 Each file is idempotent (`CREATE OR REPLACE`, `IF NOT EXISTS`).
 
@@ -253,6 +258,87 @@ start.bat
 ```
 
 This kills any existing Python/Node processes, starts Flask in one terminal window and Vite in another.
+
+> ⚠️ `start.bat` runs `taskkill /F /IM python.exe` and `/IM node.exe`, which kills **every** Python and Node process on the machine — not just this app's. If you have other dev servers, notebooks, or editor extensions running, use the two-terminal method instead.
+
+### Debug mode
+
+Debug is off by default. To enable the reloader and full tracebacks locally:
+
+```bash
+# Windows (PowerShell)
+$env:FLASK_DEBUG = "1"; venv\Scripts\python run_web.py
+```
+
+Never set `FLASK_DEBUG=1` on a deployed instance — the Werkzeug debugger it enables exposes an interactive Python console.
+
+---
+
+## Deployment
+
+The app deploys as a **single service**: Flask serves both the JSON API and the compiled React bundle. `frontend/src/lib/api.js` uses relative fetch paths, and `src/web/app.py` serves `frontend/dist` with an SPA catch-all — so there is no separate frontend host, no `VITE_API_BASE_URL`, and no CORS to configure.
+
+### Why Docker
+
+The build needs both Node (to compile the frontend) and Python (to run it). A platform's native Python runtime only guarantees Python, so [`Dockerfile`](Dockerfile) does it in two stages: `node:20-alpine` runs `npm ci && npm run build`, then `python:3.11-slim` installs the wheels and copies `dist/` across. Both versions are pinned, and the same image runs unchanged on Render, Railway, or Fly.
+
+### Deploying to Render
+
+1. Run all seven migrations, including `pending_registrations.sql` (step 7). **Deploying without it breaks registration** — see below.
+2. Commit and push to `main`. Render's Blueprint reads `branch: main` from [`render.yaml`](render.yaml).
+3. Render dashboard → **New** → **Blueprint** → select this repo.
+4. Render prompts for the four `sync: false` secrets. Paste the same values as your local `.env`:
+
+   | Variable | Notes |
+   |---|---|
+   | `SUPABASE_URL` | |
+   | `SUPABASE_SERVICE_KEY` | `service_role` key — backend only, never the frontend |
+   | `JWT_SECRET` | Changing it invalidates every existing session |
+   | `GROQ_API_KEY` | |
+
+   `TRUST_PROXY=1` is already set in `render.yaml`; `load_dotenv()` no-ops when there's no `.env`, so platform env vars are picked up as-is.
+5. Deploy, then verify in this order — each step exercises something the previous one doesn't:
+
+   - **Register a brand-new account.** This is the `pending_registrations` test: the two halves of the flow are separate HTTP requests, so it only passes if the interim state is shared.
+   - Log in with MFA, load the dashboard, hit an AI card.
+   - Download a CSV and a PDF.
+   - Check the iCal subscription URL comes back as `https://`, not `http://`. If it's `http://`, `TRUST_PROXY` isn't reaching the app.
+
+### Production process model
+
+```
+gunicorn --workers 1 --threads 8 --timeout 120 --bind 0.0.0.0:$PORT src.web.app:app
+```
+
+- `--timeout 120` — the Groq-backed routes (`/api/insights`, `/api/weekly-summary`) can outlast gunicorn's 30-second default, which would kill the worker mid-request and surface as a 502.
+- `--workers 1 --threads 8` — a conservative default for the free tier's memory, not a correctness constraint. Pending registrations live in Postgres now, so the worker count is safe to raise.
+
+### Free-tier behaviour
+
+Render's free plan spins a service down after 15 minutes idle; the next visitor waits ~50 seconds for a cold start. The Supabase keep-alive above doesn't help with this — it pings the database, not the web service. If cold starts matter (e.g. the link is on a résumé), either point a second cron at the app's own URL or move to Render's paid tier.
+
+### Testing the production build locally
+
+Gunicorn is Linux-only, so on Windows either build the image:
+
+```bash
+docker build -t event-analytics .
+docker run --rm -p 5000:5000 --env-file .env -e TRUST_PROXY=0 event-analytics
+```
+
+…or serve the built bundle through Waitress (`pip install waitress`) to confirm the SPA catch-all and relative API paths work without Vite's proxy:
+
+```bash
+npm --prefix frontend run build
+venv\Scripts\python -m waitress --port=5000 --call src.web.app:app
+```
+
+Either way, open `http://localhost:5000` — not 5173. Vite isn't involved.
+
+### Not yet addressed
+
+- **No rate limiting** on `/auth/login`, so it's brute-forceable, and the AI routes have no per-user cap on your Groq quota. `flask-limiter` is the fix.
+- **`tests/` is empty** — there is no automated test suite, so every verification above is manual.
 
 ---
 
@@ -366,6 +452,9 @@ A short, friendly recap of the current week's activity compared against the prev
 
 ## Environment Notes
 
-- `use_reloader=False` is set in `run_web.py` to prevent Flask's dev reloader from wiping the in-memory pending-registration store between requests.
+- Pending registrations live in `public.pending_registrations`, not process memory. The registration flow spans two HTTP requests, so the interim state has to be shared across gunicorn workers and survive restarts. This is also why `run_web.py` no longer needs `use_reloader=False` — the reloader is safe now that a restart can't wipe the store.
 - The Supabase `service_role` key bypasses Row Level Security — it must never appear in frontend code.
+- `anon` and `authenticated` have no database access at all (`harden_grants.sql`). RLS is disabled on `profiles` and `events` by design, so grants are the only gate; see setup step 5.
+- `ProxyFix` is applied only when `TRUST_PROXY=1`. Trusting `X-Forwarded-*` with nothing in front of the app would let clients spoof those headers.
+- `CORS` is registered only when `CORS_ORIGINS` is set. Single-origin deployment needs no CORS headers at all.
 - TOTP uses `valid_window=1` (±30 seconds) to tolerate minor clock drift.

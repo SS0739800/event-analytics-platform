@@ -1,5 +1,6 @@
 pandas>=2.0
 flask>=3.0
+gunicorn>=21.2       # production WSGI server (Linux only; see README for Windows)
 flask-cors>=4.0
 supabase>=2.0
 python-dotenv>=1.0

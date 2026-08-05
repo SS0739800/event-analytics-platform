@@ -1,0 +1,38 @@
+# Render Blueprint. Commit this, then in Render: New > Blueprint > pick this
+# repo. Render reads the service definition from here instead of you clicking
+# through the dashboard.
+#
+# The four `sync: false` variables are NOT stored in this file — Render
+# prompts for them once at creation and keeps them encrypted. Never commit
+# real values here; this file is public.
+
+services:
+  - type: web
+    name: event-analytics-platform
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    branch: main
+    healthCheckPath: /
+
+    envVars:
+      # Signals src/web/app.py to trust X-Forwarded-Proto so request.host_url
+      # yields https:// and the iCal subscription URL isn't handed out over
+      # plaintext.
+      - key: TRUST_PROXY
+        value: "1"
+
+      # Prompted for on first deploy, then stored encrypted.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+
+      # CORS_ORIGINS is intentionally unset: Flask serves the frontend on the
+      # same origin, so no CORS headers are wanted. Set it only if you later
+      # split the frontend onto its own host.
