@@ -1,0 +1,77 @@
+# Pings Supabase daily so the free-tier project is never idle for the
+# 7 days that trigger an automatic pause.
+#
+# Requires two REPOSITORY secrets (Settings > Secrets and variables >
+# Actions > New repository secret) — not environment secrets, which are
+# invisible to jobs that don't declare `environment:`:
+#
+#   SUPABASE_URL       https://<your-ref>.supabase.co   (no trailing slash)
+#   SUPABASE_ANON_KEY  Project Settings > API > `anon` / public key
+#
+# Use the anon key, NOT SUPABASE_SERVICE_KEY. This job only needs to read
+# one row from public.keepalive, and any repo collaborator can use a repo
+# secret. See src/db/migrations/keepalive.sql.
+#
+# NOTE: GitHub disables scheduled workflows after 60 days of repository
+# inactivity (you get a warning email with a re-enable button). If this
+# repo goes dormant for two months, the keep-alive stops with it. An
+# external pinger (cron-job.org, UptimeRobot) has no such rule.
+
+name: Supabase keep-alive
+
+on:
+  schedule:
+    # Daily at 06:00 UTC. Daily rather than weekly because Actions cron
+    # is best-effort and can be delayed by hours under load — a 7-day
+    # budget needs more margin than a weekly run leaves.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+# Reading a row needs no repo access at all.
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+
+          # Catch an unset/misnamed secret here rather than as a confusing
+          # curl error against a half-formed URL.
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "::error::SUPABASE_URL or SUPABASE_ANON_KEY is empty. Add both as repository secrets."
+            exit 1
+          fi
+
+          # Trailing slash would produce ...co//rest/v1/... and a 404.
+          url="${SUPABASE_URL%/}/rest/v1/keepalive?select=pinged_at&limit=1"
+
+          : > response.txt
+
+          # `|| code=000` keeps a network-level curl failure from tripping
+          # `set -e` before the diagnostic below can print. HTTP 4xx/5xx do
+          # not fail curl on their own (no --fail), so they land in $code.
+          code=$(curl -sS --max-time 30 --retry 3 --retry-delay 10 \
+            -o response.txt -w '%{http_code}' \
+            "$url" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}") || code="000"
+
+          echo "HTTP $code"
+          cat response.txt
+          echo
+
+          # Fail loudly. A silently broken keep-alive is worse than none:
+          # you find out when the project is already paused.
+          if [ "$code" != "200" ]; then
+            echo "::error::Expected HTTP 200, got $code. Project may be paused, or the anon grant is missing (see keepalive.sql)."
+            exit 1
+          fi
+
+          echo "Supabase project is awake."

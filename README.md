@@ -68,10 +68,12 @@ event-analytics-platform/
 │   │   ├── events.py          # Event CRUD + overlap check
 │   │   ├── profiles.py        # User profile helpers
 │   │   └── migrations/         # run in the order listed under Setup
-│   │       ├── schema.sql       # Events table + CRUD functions
-│   │       ├── custom_auth.sql  # Profiles table (custom auth)
-│   │       ├── series.sql       # series_id column + delete series
-│   │       └── categories.sql   # Custom categories column on profiles
+│   │       ├── schema.sql         # Events table + CRUD functions
+│   │       ├── custom_auth.sql    # Profiles table (custom auth)
+│   │       ├── series.sql         # series_id column + delete series
+│   │       ├── categories.sql     # Custom categories column on profiles
+│   │       ├── harden_grants.sql  # Revoke anon/authenticated access
+│   │       └── keepalive.sql      # Ping target for the keep-alive job
 │   ├── export/
 │   │   ├── excel_exporter.py
 │   │   └── pdf_exporter.py
@@ -106,6 +108,9 @@ event-analytics-platform/
 │       │   └── RegisterPage.jsx
 │       ├── App.jsx
 │       └── index.css
+├── .github/
+│   └── workflows/
+│       └── keepalive.yml      # Daily Supabase ping (anti-idle-pause)
 ├── run_web.py
 ├── start.bat
 ├── requirements.txt
@@ -179,10 +184,42 @@ Open your Supabase project → **SQL Editor** → **New query**, then run each m
 2. `src/db/migrations/custom_auth.sql` — custom profiles table (replaces Supabase Auth)
 3. `src/db/migrations/series.sql` — adds `series_id` for recurring events
 4. `src/db/migrations/categories.sql` — adds the custom `categories` column to profiles
+5. `src/db/migrations/harden_grants.sql` — revokes all `anon` / `authenticated` access
+6. `src/db/migrations/keepalive.sql` — ping target for the keep-alive job (optional; needs step 5 first)
 
 Each file is idempotent (`CREATE OR REPLACE`, `IF NOT EXISTS`).
 
 > `profiles.sql` is **not** part of setup — it's the original Supabase-Auth version, kept for reference only and superseded by `custom_auth.sql`. Do not run it.
+
+**Step 5 is not optional.** `custom_auth.sql` disables RLS on `profiles` and `events` because Flask authorizes every request itself. But Supabase separately grants the `anon` role full table privileges in `public` by default, and RLS was the only thing gating that — so without step 5, anyone holding the project's `anon` key has read/write access to `profiles`, including `password_hash` and `totp_secret`. `harden_grants.sql` revokes those grants (and `EXECUTE` on the `SECURITY DEFINER` RPC functions, which are exposed at `/rest/v1/rpc/*`). The app is unaffected: it connects with the `service_role` key, which the revokes don't touch.
+
+Verify it worked — with your `anon` key, this should return `permission denied for table profiles`:
+
+```bash
+curl -i "https://<your-ref>.supabase.co/rest/v1/profiles?select=email" \
+  -H "apikey: <your-anon-key>"
+```
+
+---
+
+## Keeping the Free-Tier Project Alive
+
+Supabase pauses free projects after **7 days of inactivity** (data is preserved — you unpause from the dashboard). Activity means requests reaching the project; a `pg_cron` job is internal and doesn't reliably count, so the ping must arrive over HTTP.
+
+[`.github/workflows/keepalive.yml`](.github/workflows/keepalive.yml) reads one row from `public.keepalive` daily. To enable it:
+
+1. Run `harden_grants.sql` then `keepalive.sql` (setup steps 5 and 6).
+2. Add two **repository** secrets — GitHub repo → Settings → Secrets and variables → Actions → *New repository secret*. Environment secrets will not work; the job declares no `environment:`, so it can't see them.
+
+   | Secret | Value |
+   |---|---|
+   | `SUPABASE_URL` | `https://<your-ref>.supabase.co` — **no trailing slash** |
+   | `SUPABASE_ANON_KEY` | Project Settings → API → `anon` / public key |
+
+   Use the `anon` key, **not** `SUPABASE_SERVICE_KEY`. The job only needs to read one meaningless timestamp, and any repo collaborator can use a repo secret.
+3. Push, then Actions → *Supabase keep-alive* → **Run workflow** to test without waiting for 06:00 UTC.
+
+> **Caveat:** GitHub disables scheduled workflows after 60 days of repository inactivity (with a warning email and a re-enable button). If the repo goes dormant that long, the keep-alive stops too. An external pinger — [cron-job.org](https://cron-job.org) or UptimeRobot, both free — has no such rule and can hit the same URL with the same `apikey` header.
 
 ---
 
