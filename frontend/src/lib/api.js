@@ -29,6 +29,14 @@ export function isTokenExpired() {
   return expiresAt === null ? false : Date.now() >= expiresAt
 }
 
+// Use this instead of `!!getToken()` anywhere the UI branches on being signed
+// in. A token that's still sitting in localStorage but past its expiry is not
+// a session — treating it as one shows the signed-in view to someone the
+// server will reject.
+export function hasValidSession() {
+  return !!getToken() && !isTokenExpired()
+}
+
 export function forceLogout(reason = 'expired') {
   clearToken()
   if (!window.location.pathname.startsWith('/login')) {

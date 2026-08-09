@@ -17,10 +17,12 @@ html { scroll-behavior: smooth; }
   --text-sub:     #454545;
   --text-muted:   #8a8a8a;
 
-  /* Near-black rather than a brand hue — emphasis comes from contrast. */
-  --accent:       #0a0a0a;
-  --accent-dark:  #2c2c2c;
-  --accent-light: #f4f4f4;
+  /* Same hue family as the charts' orange, but a darker step: white text on
+     the chart orange (#eb6834) measures 3.20:1, under the 4.5:1 needed for
+     button labels. This step measures 5.44:1. */
+  --accent:       #b4471a;
+  --accent-dark:  #953a15;
+  --accent-light: #fdf1ea;
 
   /* Reserved for state (good/warning/serious/critical). Never a series colour. */
   --green:        #0ca30c;
@@ -46,6 +48,26 @@ body {
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+
+  /* Chrome — labels, headings, nav, buttons, chart furniture — isn't text you
+     read or copy, so it shouldn't take a text selection or a caret. Real
+     content opts back in below. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Kept deliberately short: form fields, your own event data, and prose the AI
+   generated. Headings and captions are chrome — they were in this list once and
+   that's exactly where the caret kept showing up. */
+input,
+textarea,
+select,
+.data-table,
+.ai-insights-body,
+.weekly-summary-text,
+.query-answer-text {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* ── Layout ── */
@@ -201,10 +223,11 @@ body {
 }
 
 .top-bar-left h2 {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .top-bar-left p {
@@ -261,15 +284,17 @@ body {
   border-color: var(--accent-dark);
 }
 
+/* Tinted rather than filled: it's a notable action but shouldn't outweigh the
+   primary button sitting next to it. */
 .btn-ai {
-  background: #ffffff;
-  color: var(--text-primary);
-  border-color: var(--border);
+  background: var(--accent-light);
+  color: var(--accent);
+  border-color: #f0d3c0;
 }
 
 .btn-ai:hover {
-  background: #fafafa;
-  border-color: var(--text-primary);
+  background: #fbe6d8;
+  border-color: var(--accent);
 }
 
 /* ── Content ── */
@@ -301,6 +326,10 @@ body {
 }
 
 .stat-card {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding-left: 0;
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -338,17 +367,20 @@ body {
 .stat-info { display: flex; flex-direction: column; gap: 2px; }
 
 .stat-number {
-  font-size: 28px;
-  font-weight: 800;
+  font-size: 30px;
+  font-weight: 700;
   color: var(--text-primary);
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
 }
 
 .stat-label {
-  font-size: 12px;
+  font-family: var(--mono);
+  font-size: 10px;
   color: var(--text-muted);
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 /* ── Grid layouts ── */
@@ -359,6 +391,13 @@ body {
 
 /* ── Cards ── */
 .card {
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -378,8 +417,10 @@ body {
 }
 
 .card-title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--text-primary);
   display: flex;
   align-items: center;
@@ -492,7 +533,7 @@ body {
 /* ── Auth pages ── */
 .auth-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f0f4ff 0%, #fafafa 50%, #f4f4f4 100%);
+  background: linear-gradient(135deg, #fdf1ea 0%, #fafafa 50%, #f4f4f4 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -502,7 +543,7 @@ body {
 .auth-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 8px;
   box-shadow: var(--shadow-lg);
   padding: 36px 40px;
   width: 100%;
@@ -517,11 +558,12 @@ body {
 }
 
 .auth-title {
-  font-size: 22px;
-  font-weight: 800;
+  font-size: 19px;
+  font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.03em;
-  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
 }
 
 .auth-subtitle {
@@ -544,7 +586,7 @@ body {
 .auth-notice {
   background: #f4f4f4;
   border: 1px solid #e4e4e4;
-  color: #1d4ed8;
+  color: var(--accent);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
   font-size: 13px;
@@ -637,8 +679,10 @@ select.field-input { cursor: pointer; }
 }
 
 .modal-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--text-primary);
   display: inline-flex;
   align-items: center;
@@ -712,18 +756,34 @@ select.field-input { cursor: pointer; }
   padding: 8px; background: #fff;
   align-self: flex-start; margin-top: 4px;
 }
-.mfa-secret-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+/* Centred to sit under the QR code, which is centred by its own wrapper. */
+.mfa-manual { text-align: center; margin-top: 4px; }
+
+.mfa-secret-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+
+/* inline-block so the box hugs the key and the text-align above can centre it;
+   as a block it would span the full width and only the text would move. */
 .mfa-secret {
-  font-family: 'Courier New', monospace; font-size: 12px;
-  background: #fafafa; border: 1px solid var(--border);
-  border-radius: 6px; padding: 8px 12px;
-  word-break: break-all; color: var(--text-primary);
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  background: #fafafa;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+  max-width: 100%;
+  word-break: break-all;
+  color: var(--text-primary);
+  /* One of the few places worth selecting — people copy this by hand. */
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* ── AI Insights Card ── */
 .ai-insights-card {
-  border-color: #c7d2fe;
-  background: linear-gradient(135deg, #fefeff 0%, #f4f4f4 100%);
+  border-color: var(--border);
+  background: linear-gradient(135deg, #ffffff 0%, #f4f4f4 100%);
 }
 
 .ai-insights-body { padding: 18px 20px; }
@@ -776,8 +836,8 @@ select.field-input { cursor: pointer; }
 /* ── Individual event conflict banner ── */
 .conflict-banner {
   margin: 0 20px 4px;
-  background: #fff8f8;
-  border: 1px solid #fca5a5;
+  background: #fdf2f2;
+  border: 1px solid var(--red);
   border-radius: var(--radius-sm);
   padding: 12px 14px;
   display: flex;
@@ -787,7 +847,7 @@ select.field-input { cursor: pointer; }
 
 .conflict-banner-msg {
   font-size: 13px;
-  color: #b91c1c;
+  color: var(--red);
   font-weight: 500;
   line-height: 1.4;
 }
@@ -801,13 +861,13 @@ select.field-input { cursor: pointer; }
 .bulk-conflict-banner {
   background: #f4f4f4;
   border-bottom: 1px solid #e4e4e4;
-  color: #92400e;
+  color: var(--accent);
   font-size: 12.5px;
   font-weight: 500;
   padding: 10px 20px;
 }
 
-.bulk-row-conflict td { background: #fff8f8; }
+.bulk-row-conflict td { background: #fdf2f2; }
 .bulk-row-conflict td:first-child { border-left: 3px solid #d03b3b; }
 .bulk-row-skipped td { background: #fafafa; opacity: 0.55; }
 .bulk-row-skipped td:first-child { border-left: 3px solid #8a8a8a; }
@@ -821,20 +881,21 @@ select.field-input { cursor: pointer; }
 
 .bulk-resolve-btn {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   font-family: inherit;
-  padding: 3px 9px;
-  border-radius: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   border: 1px solid;
   transition: all 0.15s;
 }
-.bulk-resolve-btn.skip    { background: #fff; border-color: #c4c4c4; color: var(--text-sub); }
-.bulk-resolve-btn.skip:hover { background: #f0f0f0; }
-.bulk-resolve-btn.replace { background: #f4f4f4; border-color: #fca5a5; color: #d03b3b; }
-.bulk-resolve-btn.replace:hover { background: #fee2e2; }
-.bulk-resolve-btn.undo    { background: #fff; border-color: #c4c4c4; color: var(--text-muted); font-size: 11px; }
-.bulk-resolve-btn.undo:hover { color: var(--text-primary); }
+.bulk-resolve-btn.skip    { background: #fff; border-color: var(--border); color: var(--text-sub); }
+.bulk-resolve-btn.skip:hover { background: #f6f6f6; border-color: #c4c4c4; color: var(--text-primary); }
+/* Replace discards an existing event, so it keeps the destructive red. */
+.bulk-resolve-btn.replace { background: #fff; border-color: var(--red); color: var(--red); }
+.bulk-resolve-btn.replace:hover { background: #fdf2f2; }
+.bulk-resolve-btn.undo    { background: #fff; border-color: var(--border); color: var(--text-muted); }
+.bulk-resolve-btn.undo:hover { color: var(--text-primary); border-color: #c4c4c4; }
 
 /* ── AI Parse Modal ── */
 .ai-parse-body {
@@ -896,26 +957,32 @@ select.field-input { cursor: pointer; }
 
 .confirm-delete-btn {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   font-family: inherit;
-  padding: 4px 12px;
-  border-radius: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  border: none;
+  border: 1px solid transparent;
   transition: all 0.15s;
 }
 
+/* Both options delete something, so both stay red — that's the reserved
+   critical colour, and repainting a destructive button in the brand accent
+   would make it look like a normal action. Weight carries the difference
+   instead: outlined deletes one event, filled deletes the whole series. */
 .confirm-delete-btn.single {
-  background: #d03b3b;
-  color: #fff;
+  background: #fff;
+  border-color: var(--red);
+  color: var(--red);
 }
-.confirm-delete-btn.single:hover { background: #d03b3b; }
+.confirm-delete-btn.single:hover { background: #fdf2f2; }
 
 .confirm-delete-btn.series {
-  background: #4a3aa7;
+  background: var(--red);
+  border-color: var(--red);
   color: #fff;
 }
-.confirm-delete-btn.series:hover { background: #6d28d9; }
+.confirm-delete-btn.series:hover { background: #b02f2f; border-color: #b02f2f; }
 
 .confirm-delete-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
@@ -934,17 +1001,11 @@ select.field-input { cursor: pointer; }
 
 .icon-btn:hover { opacity: 1; background: var(--page-bg); }
 .icon-btn-danger:hover { background: #f4f4f4; }
-.events-table-confirm-row td { background: #fff8f8; }
+.events-table-confirm-row td { background: #fdf2f2; }
 
 /* ── Extra badge colours (custom categories) ── */
-.badge.teal   { background: #f0fdfa; color: #0d9488; border-color: #99f6e4; }
-.badge.pink   { background: #fdf4ff; color: #a21caf; border-color: #f0abfc; }
-.badge.indigo { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
-.badge.amber  { background: #fefce8; color: #b45309; border-color: #e4e4e4; }
-.badge.rose   { background: #fff1f2; color: #be123c; border-color: #fecdd3; }
-
 /* ── Weekly summary card ── */
-.weekly-summary-card { background: linear-gradient(135deg, #fefeff 0%, #f4f4f4 100%); border-color: #e4e4e4; }
+.weekly-summary-card { background: linear-gradient(135deg, #ffffff 0%, #f4f4f4 100%); border-color: #e4e4e4; }
 .weekly-summary-body { padding: 16px 20px; }
 .weekly-summary-text { font-size: 13.5px; color: var(--text-primary); line-height: 1.7; }
 
@@ -1011,6 +1072,233 @@ select.field-input { cursor: pointer; }
 }
 .cat-chip-del:hover { color: var(--red); }
 
+
+/* ── App shell ── */
+/* Same white ground, hairlines and mono labels as the landing page, so
+   signing in isn't a jolt into a different product. */
+.shell {
+  --s-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  min-height: 100vh;
+  background: var(--card-bg);
+}
+
+.shell-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+.shell-nav-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 40px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.shell-brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+
+.shell-brand-name {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.shell-links { display: flex; align-items: center; gap: 4px; flex: 1; }
+
+.shell-link {
+  background: none;
+  border: none;
+  font-family: var(--s-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color .15s ease, background .15s ease;
+  white-space: nowrap;
+}
+.shell-link:hover { color: var(--text-primary); background: #f6f6f6; }
+.shell-link.active { color: var(--accent); }
+
+.shell-nav-right { position: relative; display: flex; align-items: center; }
+
+.shell-menu-scrim { position: fixed; inset: 0; z-index: 1; }
+
+.shell-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 2;
+  min-width: 180px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.shell-menu-head {
+  font-family: var(--s-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 12px 14px 8px;
+}
+
+.shell-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border-light);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-primary);
+  padding: 11px 14px;
+  cursor: pointer;
+}
+.shell-menu-item:hover { background: #f6f6f6; }
+
+/* Toolbar sits on its own rule below the nav rather than crowding it. */
+.shell-actions { border-bottom: 1px solid var(--border); background: var(--card-bg); }
+
+.shell-actions-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 14px 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shell-main { max-width: 1240px; margin: 0 auto; padding: 0 40px 96px; }
+
+.cal-month {
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 6px;
+  white-space: nowrap;
+}
+
+.auth-brand {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Ruled sections ── */
+/* Content sits on the page separated by rules and space, instead of every
+   block being a bordered box inside a grey page. */
+.rsection { padding: 72px 0 0; }
+.rsection + .rsection { border-top: 1px solid var(--border); margin-top: 72px; }
+
+.rsection-head { margin-bottom: 40px; }
+
+.rsection-eyebrow {
+  font-family: var(--s-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.rsection-title {
+  font-size: clamp(22px, 2.6vw, 30px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.015em;
+  line-height: 1.15;
+}
+
+/* ── Metrics row ── */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--border);
+}
+
+.metric { padding: 28px 0; border-right: 1px solid var(--border); }
+.metric:last-child { border-right: none; }
+.metric + .metric { padding-left: 32px; }
+
+.metric-label {
+  font-family: var(--s-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.metric-value {
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+/* ── Panels ── */
+/* One hairline, no shadow, no radius stack — the successor to `.card`. */
+.panel { border-top: 1px solid var(--border); padding: 28px 0 0; }
+.panel + .panel { margin-top: 40px; }
+
+.panel-head { margin-bottom: 20px; }
+
+.panel-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-sub { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
+
+.panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+
+@media (max-width: 1024px) {
+  .shell-nav-inner { padding: 0 24px; gap: 20px; }
+  .shell-links { overflow-x: auto; }
+  .shell-actions-inner, .shell-main { padding-left: 24px; padding-right: 24px; }
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .metric:nth-child(2) { border-right: none; }
+  .metric:nth-child(3) { padding-left: 0; }
+  .panel-grid { grid-template-columns: 1fr; gap: 32px; }
+}
+
+@media (max-width: 700px) {
+  .shell-nav-inner { height: 60px; padding: 0 16px; }
+  .shell-brand-name { display: none; }
+  .shell-actions-inner, .shell-main { padding-left: 16px; padding-right: 16px; }
+  .rsection { padding-top: 48px; }
+  .rsection + .rsection { margin-top: 48px; }
+  .metrics { grid-template-columns: 1fr; }
+  .metric { border-right: none; border-bottom: 1px solid var(--border); }
+  .metric + .metric { padding-left: 0; }
+  .metric-value { font-size: 30px; }
+}
+
 /* ── Landing page ── */
 /* Scoped tokens: the landing page is monochrome and doesn't inherit the
    dashboard's blue. Keeping them under .landing means the app is untouched. */
@@ -1022,6 +1310,8 @@ select.field-input { cursor: pointer; }
   --l-line-2:  #f0f0f0;
   --l-paper:   #ffffff;
   --l-paper-2: #fafafa;
+  --l-accent:   #b4471a;
+  --l-accent-2: #953a15;
   --l-mono:    'IBM Plex Mono', ui-monospace, monospace;
 
   background: var(--l-paper);
@@ -1100,18 +1390,18 @@ select.field-input { cursor: pointer; }
 }
 
 .landing-cta-primary {
-  background: var(--l-ink);
+  background: var(--l-accent);
   color: #fff;
-  border: 1px solid var(--l-ink);
+  border: 1px solid var(--l-accent);
 }
-.landing-cta-primary:hover { background: #2c2c2c; border-color: #2c2c2c; }
+.landing-cta-primary:hover { background: var(--l-accent-2); border-color: var(--l-accent-2); }
 
 .landing-cta-secondary {
   background: transparent;
   color: var(--l-ink);
   border: 1px solid var(--l-line);
 }
-.landing-cta-secondary:hover { border-color: var(--l-ink); }
+.landing-cta-secondary:hover { border-color: var(--l-accent); color: var(--l-accent); }
 
 .landing-nav .landing-cta-primary { padding: 9px 18px; }
 
@@ -1138,10 +1428,11 @@ select.field-input { cursor: pointer; }
 }
 
 .landing-headline {
-  font-size: clamp(44px, 7vw, 82px);
-  line-height: 1.02;
-  font-weight: 600;
-  letter-spacing: -0.035em;
+  font-size: clamp(34px, 5.4vw, 66px);
+  line-height: 1.06;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.005em;
   margin-bottom: 28px;
 }
 
@@ -1149,7 +1440,7 @@ select.field-input { cursor: pointer; }
    carries the hierarchy instead of hue. */
 .landing-headline-accent {
   color: var(--l-ink-3);
-  font-weight: 300;
+  font-weight: 400;
 }
 
 .landing-sub {
@@ -1217,52 +1508,13 @@ select.field-input { cursor: pointer; }
 }
 
 .landing-section-title {
-  max-width: 620px;
-  font-size: clamp(28px, 4vw, 40px);
-  line-height: 1.15;
-  font-weight: 600;
-  letter-spacing: -0.025em;
+  max-width: 700px;
+  font-size: clamp(24px, 3.2vw, 36px);
+  line-height: 1.18;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
   margin-bottom: 72px;
-}
-
-/* ── Features ── */
-/* A ruled grid, not floating cards. Borders do the separating, so there's no
-   shadow stack and no hover lift. */
-.landing-features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  border-top: 1px solid var(--l-line);
-  border-left: 1px solid var(--l-line);
-}
-
-.landing-feature-card {
-  padding: 36px 32px 40px;
-  border-right: 1px solid var(--l-line);
-  border-bottom: 1px solid var(--l-line);
-  background: var(--l-paper);
-  transition: background .15s ease;
-}
-.landing-feature-card:hover { background: var(--l-paper-2); }
-
-.landing-feature-num {
-  font-family: var(--l-mono);
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--l-ink-3);
-  margin-bottom: 28px;
-}
-
-.landing-feature-title {
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  margin-bottom: 10px;
-}
-
-.landing-feature-desc {
-  font-size: 14px;
-  line-height: 1.65;
-  color: var(--l-ink-2);
 }
 
 /* ── How it works ── */
@@ -1283,9 +1535,10 @@ select.field-input { cursor: pointer; }
 }
 
 .landing-step-title {
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   margin-bottom: 10px;
 }
 
@@ -1303,10 +1556,11 @@ select.field-input { cursor: pointer; }
 }
 
 .landing-cta-banner-title {
-  font-size: clamp(28px, 4vw, 44px);
-  line-height: 1.1;
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-size: clamp(24px, 3.4vw, 38px);
+  line-height: 1.14;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.015em;
   color: #fff;
   margin-bottom: 16px;
 }
@@ -1351,7 +1605,6 @@ select.field-input { cursor: pointer; }
 
 /* ── Landing responsive ── */
 @media (max-width: 1024px) {
-  .landing-features-grid { grid-template-columns: repeat(2, 1fr); }
   .landing-stats { grid-template-columns: repeat(2, 1fr); }
   .landing-stat:nth-child(2) { border-right: none; }
   .landing-stat:nth-child(3) { padding-left: 0; border-bottom: none; }
@@ -1369,12 +1622,505 @@ select.field-input { cursor: pointer; }
   .landing-features,
   .landing-how { padding: 72px 20px; }
   .landing-section-title { margin-bottom: 48px; }
-  .landing-features-grid { grid-template-columns: 1fr; }
-  .landing-feature-card { padding: 28px 24px 32px; }
   .landing-cta-banner { padding: 72px 20px; }
   .landing-footer { padding: 24px 20px; flex-direction: column; gap: 12px; }
 }
 
+
+/* ── Nav links ── */
+.landing-nav-links { display: flex; gap: 28px; }
+
+.landing-nav-links a {
+  font-size: 14px;
+  color: var(--l-ink-2);
+  text-decoration: none;
+  transition: color .15s ease;
+}
+.landing-nav-links a:hover { color: var(--l-accent); }
+
+/* ── Hero product preview ── */
+/* Built in markup rather than screenshotted: stays sharp at any width and
+   can't go stale when the real dashboard changes. */
+.preview {
+  max-width: 1180px;
+  margin: 72px auto 0;
+  border: 1px solid var(--l-line);
+  border-radius: 8px;
+  background: var(--l-paper);
+  overflow: hidden;
+}
+
+.preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--l-line);
+  background: var(--l-paper-2);
+}
+
+.preview-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #d8d8d8;
+}
+
+.preview-body {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  grid-template-areas: 'tiles chart' 'rows rows';
+  gap: 20px;
+  padding: 24px;
+}
+
+.preview-tiles { grid-area: tiles; display: flex; flex-direction: column; gap: 12px; }
+
+.preview-tile {
+  border: 1px solid var(--l-line);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+
+.preview-tile-label {
+  font-family: var(--l-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--l-ink-3);
+  margin-bottom: 6px;
+}
+
+.preview-tile-value {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.preview-chart {
+  grid-area: chart;
+  border: 1px solid var(--l-line);
+  border-radius: 6px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-chart-head {
+  font-family: var(--l-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--l-ink-3);
+  margin-bottom: 16px;
+}
+
+.preview-bars {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  align-items: end;
+  min-height: 108px;
+}
+
+.preview-bar-col { display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; gap: 8px; }
+
+.preview-bar-fill {
+  width: 100%;
+  background: var(--l-ink);
+  border-radius: 3px 3px 0 0;
+  min-height: 4px;
+  align-self: stretch;
+}
+
+.preview-bar-label {
+  font-family: var(--l-mono);
+  font-size: 10px;
+  color: var(--l-ink-3);
+}
+
+.preview-rows { grid-area: rows; border-top: 1px solid var(--l-line); padding-top: 4px; }
+
+.preview-row {
+  display: grid;
+  grid-template-columns: 10px 1fr auto auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 2px;
+  border-bottom: 1px solid var(--l-line-2);
+  font-size: 13px;
+}
+.preview-row:last-child { border-bottom: none; }
+
+.preview-row-dot { width: 7px; height: 7px; border-radius: 50%; }
+.preview-row-title { font-weight: 500; }
+.preview-row-cat {
+  font-size: 11px;
+  color: var(--l-ink-2);
+  background: var(--l-paper-2);
+  border: 1px solid var(--l-line);
+  border-radius: 3px;
+  padding: 2px 8px;
+}
+.preview-row-time,
+.preview-row-dur { font-family: var(--l-mono); font-size: 11px; color: var(--l-ink-3); }
+
+
+
+/* ── Hero video background ── */
+/* Only active when HERO_VIDEO is set in LandingPage.jsx; without it the hero
+   keeps its plain white treatment. */
+.landing-hero.has-video {
+  position: relative;
+  color: #fff;
+  max-width: none;
+  padding-left: max(48px, calc((100vw - 1180px) / 2));
+  padding-right: max(48px, calc((100vw - 1180px) / 2));
+}
+
+.hero-media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  background: #14100e;
+}
+
+/* Scaled from the top-left so the bottom-right corner falls outside .hero-media
+   (which clips it). That corner carries the generator's sparkle watermark —
+   this crops it off without re-encoding. Raise --hero-zoom if any of it still
+   peeks through; every increment also zooms further into the footage, so keep
+   it as low as does the job. */
+.hero-video {
+  --hero-zoom: 1.16;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scale(var(--hero-zoom));
+  transform-origin: top left;
+}
+
+/* Darker at the left where the copy sits, so the footage stays visible on the
+   right instead of being flatly dimmed everywhere. */
+.hero-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(10,10,10,.82) 0%, rgba(10,10,10,.55) 45%, rgba(10,10,10,.25) 100%),
+    linear-gradient(180deg, rgba(10,10,10,.35) 0%, transparent 30%);
+}
+
+.landing-hero.has-video .landing-hero-inner { position: relative; z-index: 1; }
+.landing-hero.has-video .landing-badge { color: rgba(255,255,255,.7); }
+.landing-hero.has-video .landing-headline { color: #fff; }
+.landing-hero.has-video .landing-headline-accent { color: rgba(255,255,255,.62); }
+.landing-hero.has-video .landing-sub { color: rgba(255,255,255,.85); }
+
+.landing-hero.has-video .landing-cta-secondary {
+  color: #fff;
+  border-color: rgba(255,255,255,.4);
+}
+.landing-hero.has-video .landing-cta-secondary:hover {
+  border-color: #fff;
+  color: #fff;
+}
+
+/* The preview panel would fight the footage behind it. */
+.landing-hero.has-video + .preview,
+.landing-hero.has-video .preview { display: none; }
+
+@media (max-width: 700px) {
+  .hero-scrim {
+    background: linear-gradient(180deg, rgba(10,10,10,.55) 0%, rgba(10,10,10,.75) 100%);
+  }
+}
+/* ── Preview motion ── */
+/* Bars grow and rows arrive on a loop, so the hero shows the product filling
+   with activity rather than sitting static. All of it is suppressed under
+   prefers-reduced-motion below. */
+@keyframes preview-bar-grow {
+  from { height: 0%; }
+  to   { height: var(--h); }
+}
+
+@keyframes preview-row-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.preview-bar-fill {
+  height: var(--h);
+  animation: preview-bar-grow .75s cubic-bezier(.22,.9,.3,1) backwards;
+}
+
+.preview-row {
+  animation: preview-row-in .5s ease-out backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview-bar-fill,
+  .preview-row { animation: none; }
+}
+/* ── Feature rows ── */
+.landing-feature-rows { display: flex; flex-direction: column; gap: 96px; }
+
+.landing-feature-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+}
+.landing-feature-row.reverse .landing-feature-copy { order: 2; }
+
+.landing-feature-num {
+  font-family: var(--l-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--l-accent);
+  margin-bottom: 18px;
+}
+
+.landing-feature-title {
+  font-size: clamp(22px, 2.6vw, 28px);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 14px;
+}
+
+.landing-feature-desc {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--l-ink-2);
+  max-width: 460px;
+}
+
+.landing-feature-visual {
+  border: 1px solid var(--l-line);
+  border-radius: 8px;
+  background: var(--l-paper-2);
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+/* ── Feature visuals ── */
+.fv { width: 100%; }
+
+.fv-chart {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  align-items: end;
+  height: 160px;
+}
+.fv-chart-bar { background: var(--l-ink); border-radius: 3px 3px 0 0; }
+
+.fv-parse { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
+.fv-input {
+  width: 100%;
+  background: var(--l-paper);
+  border: 1px solid var(--l-line);
+  border-radius: 6px;
+  padding: 13px 15px;
+  font-size: 13px;
+  color: var(--l-ink);
+}
+
+.fv-arrow { color: var(--l-ink-3); font-size: 16px; }
+
+.fv-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+
+.fv-chip {
+  font-family: var(--l-mono);
+  font-size: 11px;
+  background: var(--l-paper);
+  border: 1px solid var(--l-line);
+  border-radius: 3px;
+  padding: 5px 10px;
+  color: var(--l-ink-2);
+}
+
+.fv-insight { display: flex; flex-direction: column; gap: 14px; }
+
+.fv-quote {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--l-ink);
+  border-left: 2px solid var(--l-accent);
+  padding-left: 18px;
+}
+
+.fv-attr {
+  font-family: var(--l-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--l-ink-3);
+  padding-left: 20px;
+}
+
+.fv-cal {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.fv-cal-cell {
+  aspect-ratio: 1;
+  border: 1px solid var(--l-line);
+  border-radius: 3px;
+  background: var(--l-paper);
+}
+.fv-cal-cell.filled { background: var(--l-accent); border-color: var(--l-accent); }
+.fv-cal-cell.clash  { background: var(--l-paper); border: 1px solid #d03b3b; }
+
+.fv-export { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+
+.fv-format {
+  font-family: var(--l-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  background: var(--l-paper);
+  border: 1px solid var(--l-line);
+  border-radius: 4px;
+  padding: 12px 18px;
+  color: var(--l-ink);
+}
+
+/* ── Feature/preview responsive ── */
+@media (max-width: 1024px) {
+  .preview-body { grid-template-columns: 1fr; grid-template-areas: 'tiles' 'chart' 'rows'; }
+  .preview-tiles { flex-direction: row; }
+  .preview-tile { flex: 1; }
+  .landing-feature-rows { gap: 64px; }
+  .landing-feature-row { grid-template-columns: 1fr; gap: 28px; }
+  .landing-feature-row.reverse .landing-feature-copy { order: 0; }
+  .landing-nav-links { display: none; }
+}
+
+@media (max-width: 700px) {
+  .preview { margin-top: 48px; border-radius: 6px; }
+  .preview-body { padding: 16px; gap: 14px; }
+  .preview-tiles { flex-direction: column; }
+  .preview-row { grid-template-columns: 10px 1fr auto; font-size: 12px; }
+  .preview-row-cat, .preview-row-time { display: none; }
+  .landing-feature-visual { min-height: 180px; padding: 22px; }
+  .fv-chart { height: 120px; }
+}
+
+
+/* ── Activity heatmap ── */
+/* Stands in for the full-bleed photography those reference sites lean on:
+   a large, dense visual block that carries a section on its own. */
+.heatmap {
+  width: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.heatmap-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.heatmap-title {
+  font-family: var(--l-mono, 'IBM Plex Mono', monospace);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--l-ink-3, #8a8a8a);
+}
+
+.heatmap-scale { display: inline-flex; align-items: center; gap: 4px; }
+
+.heatmap-scale-label {
+  font-family: var(--l-mono, 'IBM Plex Mono', monospace);
+  font-size: 10px;
+  color: var(--l-ink-3, #8a8a8a);
+  margin: 0 4px;
+}
+
+/* Must track .heatmap-grid exactly: same 53 columns, same gap. minmax(0,1fr)
+   rather than plain 1fr, since 1fr's implicit auto minimum lets a column with
+   a label in it grow and shove every other column out of alignment. */
+.heatmap-months {
+  display: grid;
+  grid-template-columns: repeat(53, minmax(0, 1fr));
+  gap: 3px;
+  font-family: var(--l-mono, 'IBM Plex Mono', monospace);
+  font-size: 10px;
+  color: var(--l-ink-3, #8a8a8a);
+  margin-bottom: 6px;
+  min-height: 14px;
+}
+
+.heatmap-months span { white-space: nowrap; }
+
+/* Column-major so each column is one week, matching how the cells are built. */
+.heatmap-grid {
+  display: grid;
+  grid-template-rows: repeat(7, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 3px;
+  width: 100%;
+}
+
+.heatmap-cell {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  background: #efefef;
+}
+.heatmap-scale .heatmap-cell { width: 11px; aspect-ratio: 1; }
+
+/* Sequential ramp: one hue, light to dark. Magnitude reads off lightness, so
+   the steps must stay monotone — never mix hues into a value scale. */
+.heatmap-cell.future { background: transparent; }
+/* Stepped up from #f8dccb: against the empty-cell grey that measured 1.14,
+   which made "a little activity" and "nothing" hard to tell apart. */
+.heatmap-cell.l1 { background: #f4c4a5; }
+.heatmap-cell.l2 { background: #efa87d; }
+.heatmap-cell.l3 { background: #d9713a; }
+.heatmap-cell.l4 { background: #b4471a; }
+
+/* ── Full-bleed heatmap section ── */
+.landing-showcase {
+  border-top: 1px solid var(--l-line);
+  background: var(--l-paper-2);
+}
+
+.landing-showcase-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 120px 48px;
+}
+
+.landing-showcase-copy { max-width: 640px; margin-bottom: 56px; }
+
+.landing-showcase-panel {
+  background: var(--l-paper);
+  border: 1px solid var(--l-line);
+  border-radius: 8px;
+  padding: 32px;
+}
+
+@media (max-width: 700px) {
+  .landing-showcase-inner { padding: 72px 20px; }
+  .landing-showcase-panel { padding: 18px; }
+  .heatmap-grid, .heatmap-months { gap: 2px; }
+  .heatmap-months { font-size: 8px; }
+}
 /* ── Calendar ── */
 .cal-arrow { padding: 6px 11px; font-size: 16px; line-height: 1; }
 
@@ -1539,7 +2285,7 @@ select.field-input { cursor: pointer; }
 .cal-query-result {
   cursor: pointer;
 }
-.cal-query-result:hover { background: #f0f6ff; border-color: #e4e4e4; }
+.cal-query-result:hover { background: #f6f6f6; border-color: #e4e4e4; }
 
 .cal-query-date {
   font-size: 10.5px;
@@ -1640,8 +2386,8 @@ select.field-input { cursor: pointer; }
 }
 
 .cal-panel-event--confirm {
-  background: #fff8f8;
-  border-color: #fca5a5;
+  background: #fdf2f2;
+  border-color: var(--red);
   flex-direction: column;
   gap: 10px;
 }

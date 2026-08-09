@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
-import { getToken, isTokenExpired, forceLogout } from '../lib/api'
+import { hasValidSession, forceLogout } from '../lib/api'
 import useIdleTimeout from '../lib/useIdleTimeout'
 
 // Matches IDLE_TIMEOUT_MINUTES in src/auth/tokens.py. Keep them in step.
@@ -20,7 +20,7 @@ export default function ProtectedRoute({ children }) {
 
   // Checking expiry, not just presence — otherwise a stale tab flashes the
   // dashboard before the first API call fails.
-  if (!getToken() || isTokenExpired()) {
+  if (!hasValidSession()) {
     return <Navigate to="/login?reason=expired" replace />
   }
   return children

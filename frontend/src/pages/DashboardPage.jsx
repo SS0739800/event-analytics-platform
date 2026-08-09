@@ -1,7 +1,6 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch, clearToken } from '../lib/api'
-import StatCard from '../components/StatCard'
 import CategoryCharts from '../components/CategoryCharts'
 import TimeCharts from '../components/TimeCharts'
 import TrendChart from '../components/TrendChart'
@@ -17,15 +16,16 @@ import CategoryModal from '../components/CategoryModal'
 import { useCategories } from '../lib/useCategories'
 import { invalidateCategoriesCache } from '../lib/categories'
 import Icon from '../components/Icon'
+import AppShell from '../components/AppShell'
+import ActivityHeatmap from '../components/ActivityHeatmap'
 
 const NAV = [
-  { id: 'overview',   icon: 'grid',     label: 'Overview' },
-  { id: 'categories', icon: 'layers',   label: 'Categories' },
-  { id: 'time',       icon: 'clock',    label: 'Time Analysis' },
-  { id: 'trends',     icon: 'trend',    label: 'Trends' },
-  { id: 'events',     icon: 'list',     label: 'Events' },
+  { id: 'overview',   label: 'Overview' },
+  { id: 'categories', label: 'Categories' },
+  { id: 'time',       label: 'Time' },
+  { id: 'trends',     label: 'Trends' },
+  { id: 'events',     label: 'Events' },
 ]
-
 function useAuthFetch(path, refreshKey) {
   const [data, setData] = useState(null)
   useEffect(() => {
@@ -61,6 +61,19 @@ export default function DashboardPage() {
   const trends    = useAuthFetch('/trends',         refreshKey)
   const allEvents = useAuthFetch('/events',         refreshKey)
 
+  // Minutes per day for the heatmap. /events already carries everything needed,
+  // so this costs no extra request. Kept in whole minutes rather than hours —
+  // dividing on every add accumulates float error, so 45 minutes could come
+  // out as 0.7499999.
+  const activityByDate = useMemo(() => {
+    const map = {}
+    for (const e of (allEvents || [])) {
+      const k = String(e.date).slice(0, 10)
+      map[k] = (map[k] || 0) + (e.duration_minutes || 0)
+    }
+    return map
+  }, [allEvents])
+
   const scrollTo = (id) => {
     setActive(id)
     if (id === 'overview') window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -83,129 +96,117 @@ export default function DashboardPage() {
     })
   }
 
+  const toolbar = (
+    <>
+      <button className="btn btn-primary" onClick={() => { setEditEvent(null); setModalOpen(true) }}>+ Add Event</button>
+      <button className="btn btn-ai" onClick={() => setAiModalOpen(true)}><Icon name="sparkle" />Add with AI</button>
+      <button className="btn btn-outline" onClick={() => setCatModalOpen(true)}><Icon name="tag" />Categories</button>
+      <button className="btn btn-outline" onClick={() => navigate('/calendar')}><Icon name="calendar" />Calendar</button>
+      <span style={{ flex: 1 }} />
+      <button className="btn btn-outline" onClick={() => setIcalOpen(true)}><Icon name="calendar" />iCal</button>
+      <button className="btn btn-outline" onClick={() => exportWithAuth('/export/csv')}><Icon name="download" />CSV</button>
+      <button className="btn btn-outline" onClick={() => exportWithAuth('/export/excel')}><Icon name="download" />Excel</button>
+      <button className="btn btn-outline" onClick={() => exportWithAuth('/export/pdf')}><Icon name="download" />PDF</button>
+    </>
+  )
+
   return (
-    <div className="app-layout">
-      <aside className="sidebar">
-        <div className="sidebar-logo">
-          <div className="logo-mark" />
-          <div className="logo-text">EventAnalytics<span className="logo-sub">PLATFORM</span></div>
+    <AppShell sections={NAV} active={active} onNavigate={scrollTo} actions={toolbar}>
+      <section id="overview" className="rsection">
+        <div className="rsection-head">
+          <div className="rsection-eyebrow">01 — Overview</div>
+          <h1 className="rsection-title">Your activity at a glance</h1>
         </div>
 
-        <span className="sidebar-section-label">Navigation</span>
-        <nav className="sidebar-nav">
-          {NAV.map(({ id, icon, label }) => (
-            <div key={id} className={`nav-item ${active === id ? 'active' : ''}`}
-              onClick={() => scrollTo(id)} role="button" tabIndex={0}
-              onKeyDown={e => e.key === 'Enter' && scrollTo(id)}>
-              <span className="nav-icon"><Icon name={icon} /></span>{label}
-            </div>
-          ))}
-          <div className="nav-item" role="button" tabIndex={0}
-            onClick={() => navigate('/calendar')}
-            onKeyDown={e => e.key === 'Enter' && navigate('/calendar')}>
-            <span className="nav-icon"><Icon name="calendar" /></span>Calendar
+        <div className="metrics">
+          <div className="metric">
+            <div className="metric-label">Total events</div>
+            <div className="metric-value">{stats?.total_events ?? '—'}</div>
           </div>
-          <div className="nav-item" role="button" tabIndex={0}
-            onClick={() => setCatModalOpen(true)}
-            onKeyDown={e => e.key === 'Enter' && setCatModalOpen(true)}>
-            <span className="nav-icon"><Icon name="tag" /></span>Categories
+          <div className="metric">
+            <div className="metric-label">Hours logged</div>
+            <div className="metric-value">{stats?.total_hours != null ? `${stats.total_hours}h` : '—'}</div>
           </div>
-        </nav>
-
-        <div className="sidebar-user">
-          {user.full_name && <div className="sidebar-user-name">{user.full_name}</div>}
-          <div className="sidebar-user-email">{user.email}</div>
-          <div className="nav-item" onClick={handleSignOut} role="button" tabIndex={0}
-            onKeyDown={e => e.key === 'Enter' && handleSignOut()}
-            style={{ color: 'var(--red)', padding: '6px 14px' }}>
-            Sign out
+          <div className="metric">
+            <div className="metric-label">Categories</div>
+            <div className="metric-value">{stats?.categories ?? '—'}</div>
+          </div>
+          <div className="metric">
+            <div className="metric-label">Avg duration</div>
+            <div className="metric-value">{stats?.avg_duration ?? '—'}</div>
           </div>
         </div>
-      </aside>
 
-      <div className="main-area">
-        <header className="top-bar">
-          <div className="top-bar-left">
-            <h2>Dashboard Overview</h2>
-            <p>Personal activity analytics</p>
+        <div className="panel">
+          <div className="panel-head">
+            <div className="panel-title">Activity over time</div>
+            <div className="panel-sub">Hours logged each day over the past year</div>
           </div>
-          <div className="top-bar-right">
-            <button className="btn btn-outline" onClick={() => { setEditEvent(null); setModalOpen(true) }}>+ Add Event</button>
-            <button className="btn btn-ai" onClick={() => setAiModalOpen(true)}><Icon name="sparkle" />Add with AI</button>
-            <button className="btn btn-outline" onClick={() => setIcalOpen(true)}><Icon name="calendar" />iCal</button>
-            <button className="btn btn-outline" onClick={() => exportWithAuth('/export/csv')}><Icon name="download" />CSV</button>
-            <button className="btn btn-outline" onClick={() => exportWithAuth('/export/excel')}><Icon name="download" />Excel</button>
-            <button className="btn btn-primary" onClick={() => exportWithAuth('/export/pdf')}><Icon name="download" />PDF</button>
-          </div>
-        </header>
-
-        <div className="content">
-          <section id="overview" className="section">
-            <div className="section-header"><span className="section-title">Overview</span></div>
-            <div className="stats-grid">
-              <StatCard color="blue"   icon="calendar" label="Total Events"       value={stats?.total_events} />
-              <StatCard color="green"  icon="clock" label="Total Hours Logged"  value={stats?.total_hours != null ? `${stats.total_hours}h` : null} />
-              <StatCard color="orange" icon="tag" label="Activity Categories" value={stats?.categories} />
-              <StatCard color="purple" icon="clock" label="Avg Duration (min)"  value={stats?.avg_duration} />
-            </div>
-            <div className="grid cols-2" style={{ marginTop: 14 }}>
-              <AIInsightsCard refreshKey={refreshKey} />
-              <WeeklySummaryCard refreshKey={refreshKey} />
-            </div>
-            <div style={{ marginTop: 14 }}>
-              <QueryPanel />
-            </div>
-          </section>
-
-          <section id="categories" className="section">
-            <div className="section-header"><span className="section-title">Categories</span></div>
-            <div className="grid cols-2">
-              <CategoryCharts data={catStats} type="bar" categories={categories} />
-              <CategoryCharts data={catStats} type="pie" categories={categories} />
-            </div>
-            <div className="grid cols-1" style={{ marginTop: 14 }}>
-              <CategoryCharts data={catStats} type="duration" categories={categories} />
-            </div>
-          </section>
-
-          <section id="time" className="section">
-            <div className="section-header"><span className="section-title">Time Analysis</span></div>
-            <div className="grid cols-2">
-              <TimeCharts data={timeStats} type="hours" />
-              <TimeCharts data={timeStats} type="days" />
-            </div>
-          </section>
-
-          <section id="trends" className="section">
-            <div className="section-header"><span className="section-title">Trends</span></div>
-            <div className="grid cols-2">
-              <TrendChart data={trends} type="monthly" />
-              <TrendChart data={trends} type="category" categories={categories} />
-            </div>
-          </section>
-
-          <section id="events" className="section">
-            <div className="section-header"><span className="section-title">Events</span></div>
-            <div className="card">
-              <div className="card-header">
-                <div>
-                  <div className="card-title">All Events</div>
-                  <div className="card-subtitle">
-                    {allEvents ? `${allEvents.length} total` : 'Loading…'}
-                  </div>
-                </div>
-              </div>
-              <div className="card-body-flush events-table-wrap">
-                <EventsTable
-                  data={allEvents}
-                  onEdit={ev => { setEditEvent(ev); setAiPrefill(null); setModalOpen(true) }}
-                  onDeleted={refresh}
-                />
-              </div>
-            </div>
-          </section>
+          <ActivityHeatmap data={activityByDate} title="Past 12 months" />
         </div>
-      </div>
+
+        <div className="panel-grid" style={{ marginTop: 40 }}>
+          <AIInsightsCard refreshKey={refreshKey} />
+          <WeeklySummaryCard refreshKey={refreshKey} />
+        </div>
+
+        <div style={{ marginTop: 40 }}>
+          <QueryPanel />
+        </div>
+      </section>
+
+      <section id="categories" className="rsection">
+        <div className="rsection-head">
+          <div className="rsection-eyebrow">02 — Categories</div>
+          <h2 className="rsection-title">Where your time goes</h2>
+        </div>
+        <div className="panel-grid">
+          <CategoryCharts data={catStats} type="bar" categories={categories} />
+          <CategoryCharts data={catStats} type="pie" categories={categories} />
+        </div>
+        <div style={{ marginTop: 40 }}>
+          <CategoryCharts data={catStats} type="duration" categories={categories} />
+        </div>
+      </section>
+
+      <section id="time" className="rsection">
+        <div className="rsection-head">
+          <div className="rsection-eyebrow">03 — Time</div>
+          <h2 className="rsection-title">The shape of your day</h2>
+        </div>
+        <div className="panel-grid">
+          <TimeCharts data={timeStats} type="hours" />
+          <TimeCharts data={timeStats} type="days" />
+        </div>
+      </section>
+
+      <section id="trends" className="rsection">
+        <div className="rsection-head">
+          <div className="rsection-eyebrow">04 — Trends</div>
+          <h2 className="rsection-title">How it changes over months</h2>
+        </div>
+        <div className="panel-grid">
+          <TrendChart data={trends} type="monthly" />
+          <TrendChart data={trends} type="category" categories={categories} />
+        </div>
+      </section>
+
+      <section id="events" className="rsection">
+        <div className="rsection-head">
+          <div className="rsection-eyebrow">05 — Events</div>
+          <h2 className="rsection-title">
+            Everything you have logged
+          </h2>
+          <div className="panel-sub">{allEvents ? `${allEvents.length} events` : 'Loading…'}</div>
+        </div>
+        <div className="events-table-wrap">
+          <EventsTable
+            data={allEvents}
+            onEdit={ev => { setEditEvent(ev); setAiPrefill(null); setModalOpen(true) }}
+            onDeleted={refresh}
+          />
+        </div>
+      </section>
 
       {aiModalOpen && (
         <AIParseModal
@@ -250,6 +251,6 @@ export default function DashboardPage() {
           onSaved={(newCats) => { invalidateCategoriesCache(); refresh() }}
         />
       )}
-    </div>
+    </AppShell>
   )
 }

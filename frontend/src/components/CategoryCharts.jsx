@@ -3,9 +3,36 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts'
 import { CHART, tooltipStyle, tooltipCursor } from '../lib/chartTheme'
-import { categoryColor } from '../lib/categories'
+import { categoryStyle } from '../lib/categories'
 
 const axisTick = { fontSize: 11, fill: CHART.axis }
+
+// Tier-2 categories reuse a tier-1 hue, so they need a second channel to stay
+// tellable apart. A diagonal hatch of the same colour does it without adding a
+// seventh colour that looks like one already on screen.
+function hatchId(cat) {
+  return `hatch-${cat.replace(/[^a-zA-Z0-9]/g, '')}`
+}
+
+function HatchDefs({ entries }) {
+  const hatched = entries.filter(e => e.variant === 'outline')
+  if (!hatched.length) return null
+  return (
+    <defs>
+      {hatched.map(({ category, color }) => (
+        <pattern key={category} id={hatchId(category)} patternUnits="userSpaceOnUse"
+          width="6" height="6" patternTransform="rotate(45)">
+          <rect width="6" height="6" fill="#ffffff" />
+          <line x1="0" y1="0" x2="0" y2="6" stroke={color} strokeWidth="3.5" />
+        </pattern>
+      ))}
+    </defs>
+  )
+}
+
+function fillFor({ color, variant, category }) {
+  return variant === 'outline' ? `url(#${hatchId(category)})` : color
+}
 
 export default function CategoryCharts({ data, type, categories }) {
   if (!data) {
@@ -70,6 +97,9 @@ export default function CategoryCharts({ data, type, categories }) {
         <div className="card-body">
           <ResponsiveContainer width="100%" height={240}>
             <PieChart>
+              <HatchDefs entries={data.events_by_category.map(d => ({
+                category: d.category, ...categoryStyle(d.category, cats),
+              }))} />
               <Pie
                 data={data.events_by_category}
                 dataKey="count"
@@ -84,19 +114,27 @@ export default function CategoryCharts({ data, type, categories }) {
                 strokeWidth={2}
               >
                 {data.events_by_category.map(d => (
-                  <Cell key={d.category} fill={categoryColor(d.category, cats)} />
+                  <Cell key={d.category} fill={fillFor({ category: d.category, ...categoryStyle(d.category, cats) })} />
                 ))}
               </Pie>
               <Tooltip contentStyle={tooltipStyle} formatter={(v, n) => [v, n]} />
             </PieChart>
           </ResponsiveContainer>
           <div className="chart-legend">
-            {data.events_by_category.map(d => (
-              <span key={d.category} className="chart-legend-item">
-                <span className="chart-legend-dot" style={{ background: categoryColor(d.category, cats) }} />
-                {d.category}
-              </span>
-            ))}
+            {data.events_by_category.map(d => {
+              const { color, variant } = categoryStyle(d.category, cats)
+              return (
+                <span key={d.category} className="chart-legend-item">
+                  <span
+                    className="chart-legend-dot"
+                    style={variant === 'outline'
+                      ? { background: 'transparent', boxShadow: `inset 0 0 0 2.5px ${color}` }
+                      : { background: color }}
+                  />
+                  {d.category}
+                </span>
+              )
+            })}
           </div>
         </div>
       </div>

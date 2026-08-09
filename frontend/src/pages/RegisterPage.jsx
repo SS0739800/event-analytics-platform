@@ -60,8 +60,8 @@ export default function RegisterPage() {
     <div className="auth-page">
       <div className="auth-card" style={{ maxWidth: step === 'scan' ? 440 : 400 }}>
         <div className="auth-logo">
-          <div className="logo-mark" />
-          <div className="logo-text">EventAnalytics<span className="logo-sub">PLATFORM</span></div>
+          <span className="landing-mark" />
+          <span className="auth-brand">EventAnalytics</span>
         </div>
 
         <div className="reg-steps">
@@ -117,8 +117,10 @@ export default function RegisterPage() {
             <div style={{ display: 'flex', justifyContent: 'center', margin: '16px 0' }}>
               <img src={qr} alt="MFA QR Code" className="mfa-qr" style={{ width: 200, height: 200 }} />
             </div>
-            <p className="mfa-secret-label">Can't scan? Enter this key manually:</p>
-            <code className="mfa-secret">{secret}</code>
+            <div className="mfa-manual">
+              <p className="mfa-secret-label">Can't scan? Enter this key manually:</p>
+              <code className="mfa-secret">{secret}</code>
+            </div>
             <button className="btn btn-primary auth-btn" style={{ marginTop: 16 }}
               onClick={() => setStep('verify')} disabled={loading}>
               {"I've scanned it — Next"}

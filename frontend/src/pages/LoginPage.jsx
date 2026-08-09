@@ -56,8 +56,8 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <div className="logo-mark" />
-          <div className="logo-text">EventAnalytics<span className="logo-sub">PLATFORM</span></div>
+          <span className="landing-mark" />
+          <span className="auth-brand">EventAnalytics</span>
         </div>
 
         {step === 'password' ? (

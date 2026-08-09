@@ -84,7 +84,7 @@ export default function EventsTable({ data, onEdit, onDeleted }) {
               </td>
               <td>
                 <span className="badge">
-                  <span className="badge-dot" style={{ background: getCategoryStyle(event.category, categories).dot }} />
+                  <span className="badge-dot" style={getCategoryStyle(event.category, categories).dotStyle} />
                   {event.category}
                 </span>
               </td>

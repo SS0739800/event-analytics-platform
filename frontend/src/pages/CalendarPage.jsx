@@ -5,6 +5,7 @@ import EventModal from '../components/EventModal'
 import { useCategories } from '../lib/useCategories'
 import { getCategoryStyle } from '../lib/categories'
 import Icon from '../components/Icon'
+import AppShell from '../components/AppShell'
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
@@ -113,58 +114,34 @@ export default function CalendarPage() {
     loadEvents()
   }
 
+  const CAL_NAV = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'calendar',  label: 'Calendar' },
+  ]
+
+  const toolbar = (
+    <>
+      <button className="btn btn-outline cal-arrow" onClick={prevMonth}>‹</button>
+      <button className="btn btn-outline cal-arrow" onClick={nextMonth}>›</button>
+      <h2 className="cal-month">{MONTHS[month]} {year}</h2>
+      <button className="btn btn-outline" onClick={goToday}>Today</button>
+      <span style={{ flex: 1 }} />
+      <button
+        className={`btn ${showQuery ? 'btn-primary' : 'btn-outline'}`}
+        onClick={() => { setShowQuery(q => !q); setFilters(EMPTY_FILTERS) }}>
+        {showQuery ? <><Icon name="close" />Close Query</> : <><Icon name="search" />Query Events</>}
+      </button>
+      <button className="btn btn-primary" onClick={() => openAdd(null)}>+ Add Event</button>
+    </>
+  )
+
   return (
-    <div className="app-layout">
-      {/* ── Sidebar ── */}
-      <aside className="sidebar">
-        <div className="sidebar-logo">
-          <div className="logo-mark" />
-          <div className="logo-text">EventAnalytics<span className="logo-sub">PLATFORM</span></div>
-        </div>
-
-        <span className="sidebar-section-label">Navigation</span>
-        <nav className="sidebar-nav">
-          <div className="nav-item" role="button" tabIndex={0} onClick={() => navigate('/dashboard')}
-            onKeyDown={e => e.key==='Enter' && navigate('/dashboard')}>
-            <span className="nav-icon"><Icon name="grid" /></span>Dashboard
-          </div>
-          <div className="nav-item active" role="button" tabIndex={0}>
-            <span className="nav-icon"><Icon name="calendar" /></span>Calendar
-          </div>
-        </nav>
-
-        <div className="sidebar-user">
-          {user.full_name && <div className="sidebar-user-name">{user.full_name}</div>}
-          <div className="sidebar-user-email">{user.email}</div>
-          <div className="nav-item" role="button" tabIndex={0}
-            onClick={() => { clearToken(); navigate('/') }}
-            style={{ color: 'var(--red)', padding: '6px 14px' }}>
-            Sign out
-          </div>
-        </div>
-      </aside>
-
-      {/* ── Main ── */}
-      <div className="main-area">
-        <header className="top-bar">
-          <div className="top-bar-left" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ display: 'flex', gap: 4 }}>
-              <button className="btn btn-outline cal-arrow" onClick={prevMonth}>‹</button>
-              <button className="btn btn-outline cal-arrow" onClick={nextMonth}>›</button>
-            </div>
-            <h2 style={{ fontSize: 17, letterSpacing: '-0.02em' }}>{MONTHS[month]} {year}</h2>
-            <button className="btn btn-outline" style={{ fontSize: 12 }} onClick={goToday}>Today</button>
-          </div>
-          <div className="top-bar-right">
-            <button
-              className={`btn ${showQuery ? 'btn-primary' : 'btn-outline'}`}
-              onClick={() => { setShowQuery(q => !q); setFilters(EMPTY_FILTERS) }}>
-              {showQuery ? <><Icon name="close" />Close Query</> : <><Icon name="search" />Query Events</>}
-            </button>
-            <button className="btn btn-primary" onClick={() => openAdd(null)}>+ Add Event</button>
-          </div>
-        </header>
-
+    <AppShell
+      sections={CAL_NAV}
+      active="calendar"
+      onNavigate={(id) => id === 'dashboard' && navigate('/dashboard')}
+      actions={toolbar}
+    >
         {/* ── Filter bar ── */}
         {showQuery && (
           <div className="cal-filter-bar">
@@ -230,7 +207,7 @@ export default function CalendarPage() {
                     <div className="cal-chips">
                       {shown.map((ev, i) => (
                         <div key={i} className="cal-chip">
-                          <span className="cal-chip-dot" style={{ background: catStyle(ev.category).dot }} />
+                          <span className="cal-chip-dot" style={catStyle(ev.category).dotStyle} />
                           <span className="cal-chip-time">{String(ev.start_time).slice(0,5)}</span>
                           <span className="cal-chip-title">{ev.title}</span>
                         </div>
@@ -298,7 +275,7 @@ export default function CalendarPage() {
                     return (
                       <div key={ev.id} className="cal-panel-event">
                         <div className="cal-panel-event-accent"
-                          style={{ background: catStyle(ev.category).dot }} />
+                          style={catStyle(ev.category).dotStyle} />
                         <div className="cal-panel-event-info">
                           <div className="cal-panel-event-name">
                             {ev.title}
@@ -309,7 +286,7 @@ export default function CalendarPage() {
                             &nbsp;·&nbsp;{ev.duration_minutes} min
                           </div>
                           <span className="badge" style={{ marginTop: 4 }}>
-                            <span className="badge-dot" style={{ background: catStyle(ev.category).dot }} />
+                            <span className="badge-dot" style={catStyle(ev.category).dotStyle} />
                             {ev.category}
                           </span>
                         </div>
@@ -349,7 +326,7 @@ export default function CalendarPage() {
                         setMonth(parseInt(d.slice(5,7)) - 1)
                       }}>
                       <div className="cal-panel-event-accent"
-                        style={{ background: catStyle(ev.category).dot }} />
+                        style={catStyle(ev.category).dotStyle} />
                       <div className="cal-panel-event-info">
                         <div className="cal-query-date">{String(ev.date).slice(0, 10)}</div>
                         <div className="cal-panel-event-name">{ev.title}</div>
@@ -358,7 +335,7 @@ export default function CalendarPage() {
                           &nbsp;·&nbsp;{ev.duration_minutes} min
                         </div>
                         <span className="badge" style={{ marginTop: 4 }}>
-                          <span className="badge-dot" style={{ background: catStyle(ev.category).dot }} />
+                          <span className="badge-dot" style={catStyle(ev.category).dotStyle} />
                           {ev.category}
                         </span>
                       </div>
@@ -380,7 +357,6 @@ export default function CalendarPage() {
             </div>
           )}
         </div>
-      </div>
 
       {modalOpen && (
         <EventModal
@@ -390,6 +366,6 @@ export default function CalendarPage() {
           onSaved={loadEvents}
         />
       )}
-    </div>
+    </AppShell>
   )
 }

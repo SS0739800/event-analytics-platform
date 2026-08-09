@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, Legend, Area, AreaChart,
 } from 'recharts'
 import { CHART, tooltipStyle } from '../lib/chartTheme'
-import { categoryColor } from '../lib/categories'
+import { categoryStyle } from '../lib/categories'
 
 const axisTick = { fontSize: 11, fill: CHART.axis }
 
@@ -68,13 +68,18 @@ export default function TrendChart({ data, type, categories }) {
               <YAxis tick={axisTick} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={tooltipStyle} />
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-              {series.map(cat => (
+              {series.map(cat => {
                 // Keyed to the category name, so hiding one series doesn't
-                // repaint the rest.
-                <Line key={cat} type="monotone" dataKey={cat}
-                  stroke={categoryColor(cat, cats)} strokeWidth={2}
-                  dot={{ r: 3, strokeWidth: 0 }} activeDot={{ r: 4 }} />
-              ))}
+                // repaint the rest. Tier-2 categories share a hue with a
+                // tier-1 one, so they're dashed to stay tellable apart.
+                const { color, variant } = categoryStyle(cat, cats)
+                return (
+                  <Line key={cat} type="monotone" dataKey={cat}
+                    stroke={color} strokeWidth={2}
+                    strokeDasharray={variant === 'outline' ? '5 3' : undefined}
+                    dot={{ r: 3, strokeWidth: 0 }} activeDot={{ r: 4 }} />
+                )
+              })}
             </LineChart>
           </ResponsiveContainer>
         </div>
