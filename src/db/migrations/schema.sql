@@ -121,21 +121,4 @@ BEGIN
 END;
 $$;
 
--- ================================================================
--- Analytics Functions — REMOVED
---
--- Seven aggregate functions were defined here originally:
---   get_summary_stats, get_category_stats, get_hourly_stats,
---   get_daily_stats, get_monthly_trends, get_category_trend,
---   get_top_events
---
--- Nothing ever called them. The application computes all of these
--- figures in pandas instead, from the DataFrame that
--- src/db/events.py builds out of get_user_events() — see
--- src/analytics/ and the /api/stats route in src/web/app.py.
---
--- Removed here so a fresh install never creates them.
--- drop_dead_analytics.sql removes them from databases that already
--- ran an earlier version of this file. Recoverable from git history
--- if aggregation is ever moved back into Postgres.
--- ================================================================
+
