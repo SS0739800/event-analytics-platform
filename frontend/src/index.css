@@ -1826,10 +1826,6 @@ select.field-input { cursor: pointer; }
   color: #fff;
 }
 
-/* The preview panel would fight the footage behind it. */
-.landing-hero.has-video + .preview,
-.landing-hero.has-video .preview { display: none; }
-
 @media (max-width: 700px) {
   .hero-scrim {
     background: linear-gradient(180deg, rgba(10,10,10,.55) 0%, rgba(10,10,10,.75) 100%);
@@ -1861,6 +1857,21 @@ select.field-input { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   .preview-bar-fill,
   .preview-row { animation: none; }
+}
+/* ── Product preview section ── */
+.landing-preview-section { border-top: 1px solid var(--l-line); }
+
+.landing-preview-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 120px 48px;
+}
+
+/* Section supplies the spacing now; the hero used to. */
+.landing-preview-inner .preview { margin-top: 0; }
+
+@media (max-width: 700px) {
+  .landing-preview-inner { padding: 72px 20px; }
 }
 /* ── Feature rows ── */
 .landing-feature-rows { display: flex; flex-direction: column; gap: 96px; }

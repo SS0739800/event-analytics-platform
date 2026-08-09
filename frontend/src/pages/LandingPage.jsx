@@ -215,8 +215,6 @@ export default function LandingPage() {
           </p>
           <div className="landing-hero-ctas">{ctas}</div>
         </div>
-
-        <ProductPreview />
       </section>
 
       {/* ── Stats ── */}
@@ -227,6 +225,15 @@ export default function LandingPage() {
             <div className="landing-stat-label">{s.label}</div>
           </div>
         ))}
+      </section>
+
+      {/* ── Product preview ── */}
+      <section className="landing-preview-section">
+        <div className="landing-preview-inner">
+          <div className="landing-section-label">The dashboard</div>
+          <h2 className="landing-section-title">Everything in one view</h2>
+          <ProductPreview />
+        </div>
       </section>
 
       {/* ── Showcase ── */}

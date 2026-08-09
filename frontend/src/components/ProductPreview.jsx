@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 // A stylised, animated mock of the dashboard for the landing hero.
 //
@@ -64,15 +64,31 @@ function Tile({ label, to, cycle }) {
 
 export default function ProductPreview() {
   const [cycle, setCycle] = useState(0)
+  const [visible, setVisible] = useState(false)
+  const ref = useRef(null)
 
+  // The panel sits below the fold, so the loop only runs while it's on screen —
+  // otherwise the first few cycles play to nobody and a visitor arrives partway
+  // through one.
   useEffect(() => {
-    if (prefersReducedMotion()) return
-    const id = setInterval(() => setCycle(c => c + 1), LOOP_MS)
-    return () => clearInterval(id)
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([entry]) => setVisible(entry.isIntersecting),
+      { threshold: 0.35 },
+    )
+    io.observe(el)
+    return () => io.disconnect()
   }, [])
 
+  useEffect(() => {
+    if (!visible || prefersReducedMotion()) return
+    const id = setInterval(() => setCycle(c => c + 1), LOOP_MS)
+    return () => clearInterval(id)
+  }, [visible])
+
   return (
-    <div className="preview" aria-hidden="true">
+    <div className="preview" ref={ref} aria-hidden="true">
       <div className="preview-bar">
         <span className="preview-dot" />
         <span className="preview-dot" />
@@ -81,7 +97,7 @@ export default function ProductPreview() {
 
       {/* Remounting on `cycle` restarts every CSS animation inside at once,
           which keeps the bars and rows in step with the counters. */}
-      <div className="preview-body" key={cycle}>
+      <div className="preview-body" key={`${visible}-${cycle}`}>
         <div className="preview-tiles">
           {TILES.map(t => <Tile key={t.label} {...t} cycle={cycle} />)}
         </div>
