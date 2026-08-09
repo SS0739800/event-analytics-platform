@@ -2,18 +2,12 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts'
+import { CHART, tooltipStyle, tooltipCursor } from '../lib/chartTheme'
+import { categoryColor } from '../lib/categories'
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4']
+const axisTick = { fontSize: 11, fill: CHART.axis }
 
-const tooltipStyle = {
-  backgroundColor: '#fff',
-  border: '1px solid #e4e9f0',
-  borderRadius: 8,
-  fontSize: 12,
-  boxShadow: '0 4px 12px rgba(0,0,0,.08)',
-}
-
-export default function CategoryCharts({ data, type }) {
+export default function CategoryCharts({ data, type, categories }) {
   if (!data) {
     return (
       <div className="card">
@@ -21,6 +15,8 @@ export default function CategoryCharts({ data, type }) {
       </div>
     )
   }
+
+  const cats = categories || data.events_by_category?.map(d => d.category) || []
 
   if (type === 'bar') {
     return (
@@ -34,15 +30,13 @@ export default function CategoryCharts({ data, type }) {
         <div className="card-body">
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={data.events_by_category} margin={{ top: 4, right: 8, left: -16, bottom: 28 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="category" tick={{ fontSize: 11, fill: '#94a3b8' }} angle={-20} textAnchor="end" axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: '#f8fafc' }} />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                {data.events_by_category.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Bar>
+              <CartesianGrid stroke={CHART.grid} vertical={false} />
+              <XAxis dataKey="category" tick={axisTick} angle={-20} textAnchor="end" axisLine={false} tickLine={false} />
+              <YAxis tick={axisTick} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={tooltipStyle} cursor={tooltipCursor} />
+              {/* One series, and the axis already names each bar — a different
+                  hue per bar would re-encode what the labels say. */}
+              <Bar dataKey="count" fill={CHART.bar} radius={[4, 4, 0, 0]} maxBarSize={44} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -51,6 +45,8 @@ export default function CategoryCharts({ data, type }) {
   }
 
   if (type === 'pie') {
+    // Slices carry identity by colour, so this is the one place per-category
+    // hues earn their keep.
     const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
       const RADIAN = Math.PI / 180
       const r = innerRadius + (outerRadius - innerRadius) * 0.5
@@ -83,18 +79,21 @@ export default function CategoryCharts({ data, type }) {
                 outerRadius={100}
                 labelLine={false}
                 label={renderLabel}
+                // A 2px surface ring keeps adjacent slices from bleeding together.
+                stroke="#ffffff"
+                strokeWidth={2}
               >
-                {data.events_by_category.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                {data.events_by_category.map(d => (
+                  <Cell key={d.category} fill={categoryColor(d.category, cats)} />
                 ))}
               </Pie>
               <Tooltip contentStyle={tooltipStyle} formatter={(v, n) => [v, n]} />
             </PieChart>
           </ResponsiveContainer>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px', justifyContent: 'center', marginTop: 4 }}>
-            {data.events_by_category.map((d, i) => (
-              <span key={d.category} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#64748b' }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: COLORS[i % COLORS.length], flexShrink: 0 }} />
+          <div className="chart-legend">
+            {data.events_by_category.map(d => (
+              <span key={d.category} className="chart-legend-item">
+                <span className="chart-legend-dot" style={{ background: categoryColor(d.category, cats) }} />
                 {d.category}
               </span>
             ))}
@@ -116,15 +115,11 @@ export default function CategoryCharts({ data, type }) {
         <div className="card-body">
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={data.duration_by_category} layout="vertical" margin={{ top: 4, right: 24, left: 60, bottom: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="category" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} width={56} />
-              <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`${v} min`, 'Duration']} cursor={{ fill: '#f8fafc' }} />
-              <Bar dataKey="minutes" radius={[0, 4, 4, 0]}>
-                {data.duration_by_category.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Bar>
+              <CartesianGrid stroke={CHART.grid} horizontal={false} />
+              <XAxis type="number" tick={axisTick} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="category" tick={{ ...axisTick, fill: CHART.ink }} axisLine={false} tickLine={false} width={56} />
+              <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`${v} min`, 'Duration']} cursor={tooltipCursor} />
+              <Bar dataKey="minutes" fill={CHART.bar} radius={[0, 4, 4, 0]} maxBarSize={22} />
             </BarChart>
           </ResponsiveContainer>
         </div>

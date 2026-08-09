@@ -4,6 +4,7 @@ import { apiFetch, clearToken } from '../lib/api'
 import EventModal from '../components/EventModal'
 import { useCategories } from '../lib/useCategories'
 import { getCategoryStyle } from '../lib/categories'
+import Icon from '../components/Icon'
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
@@ -117,7 +118,7 @@ export default function CalendarPage() {
       {/* ── Sidebar ── */}
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <div className="logo-mark">📊</div>
+          <div className="logo-mark" />
           <div className="logo-text">EventAnalytics<span className="logo-sub">PLATFORM</span></div>
         </div>
 
@@ -125,10 +126,10 @@ export default function CalendarPage() {
         <nav className="sidebar-nav">
           <div className="nav-item" role="button" tabIndex={0} onClick={() => navigate('/dashboard')}
             onKeyDown={e => e.key==='Enter' && navigate('/dashboard')}>
-            <span className="nav-icon">▦</span>Dashboard
+            <span className="nav-icon"><Icon name="grid" /></span>Dashboard
           </div>
           <div className="nav-item active" role="button" tabIndex={0}>
-            <span className="nav-icon">📅</span>Calendar
+            <span className="nav-icon"><Icon name="calendar" /></span>Calendar
           </div>
         </nav>
 
@@ -137,7 +138,7 @@ export default function CalendarPage() {
           <div className="sidebar-user-email">{user.email}</div>
           <div className="nav-item" role="button" tabIndex={0}
             onClick={() => { clearToken(); navigate('/') }}
-            style={{ color: '#ef4444', padding: '6px 14px' }}>
+            style={{ color: 'var(--red)', padding: '6px 14px' }}>
             Sign out
           </div>
         </div>
@@ -158,7 +159,7 @@ export default function CalendarPage() {
             <button
               className={`btn ${showQuery ? 'btn-primary' : 'btn-outline'}`}
               onClick={() => { setShowQuery(q => !q); setFilters(EMPTY_FILTERS) }}>
-              {showQuery ? '✕ Close Query' : '🔍 Query Events'}
+              {showQuery ? <><Icon name="close" />Close Query</> : <><Icon name="search" />Query Events</>}
             </button>
             <button className="btn btn-primary" onClick={() => openAdd(null)}>+ Add Event</button>
           </div>
@@ -228,8 +229,8 @@ export default function CalendarPage() {
                     </div>
                     <div className="cal-chips">
                       {shown.map((ev, i) => (
-                        <div key={i} className="cal-chip"
-                          style={{ background: catStyle(ev.category).bg, color: catStyle(ev.category).text }}>
+                        <div key={i} className="cal-chip">
+                          <span className="cal-chip-dot" style={{ background: catStyle(ev.category).dot }} />
                           <span className="cal-chip-time">{String(ev.start_time).slice(0,5)}</span>
                           <span className="cal-chip-title">{ev.title}</span>
                         </div>
@@ -255,7 +256,7 @@ export default function CalendarPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <button className="btn btn-outline" style={{ fontSize: 12, padding: '5px 10px' }}
                     onClick={() => openAdd(selected)}>+ Add</button>
-                  <button className="modal-close" onClick={() => setSelected(null)}>✕</button>
+                  <button className="modal-close" onClick={() => setSelected(null)} aria-label="Close"><Icon name="close" /></button>
                 </div>
               </div>
 
@@ -297,7 +298,7 @@ export default function CalendarPage() {
                     return (
                       <div key={ev.id} className="cal-panel-event">
                         <div className="cal-panel-event-accent"
-                          style={{ background: catStyle(ev.category).text || '#3b82f6' }} />
+                          style={{ background: catStyle(ev.category).dot }} />
                         <div className="cal-panel-event-info">
                           <div className="cal-panel-event-name">
                             {ev.title}
@@ -307,13 +308,15 @@ export default function CalendarPage() {
                             {String(ev.start_time).slice(0,5)} – {String(ev.end_time).slice(0,5)}
                             &nbsp;·&nbsp;{ev.duration_minutes} min
                           </div>
-                          <span className={`badge ${catStyle(ev.category).badge ?? ''}`}
-                            style={{ marginTop: 4 }}>{ev.category}</span>
+                          <span className="badge" style={{ marginTop: 4 }}>
+                            <span className="badge-dot" style={{ background: catStyle(ev.category).dot }} />
+                            {ev.category}
+                          </span>
                         </div>
                         <div className="cal-panel-event-btns">
-                          <button className="icon-btn" onClick={() => openEdit(ev)}>✏️</button>
+                          <button className="icon-btn" title="Edit" onClick={() => openEdit(ev)}><Icon name="edit" /></button>
                           <button className="icon-btn icon-btn-danger"
-                            onClick={() => setConfirmDeleteEv(ev)}>🗑️</button>
+                            onClick={() => setConfirmDeleteEv(ev)} title="Delete"><Icon name="trash" /></button>
                         </div>
                       </div>
                     )
@@ -346,7 +349,7 @@ export default function CalendarPage() {
                         setMonth(parseInt(d.slice(5,7)) - 1)
                       }}>
                       <div className="cal-panel-event-accent"
-                        style={{ background: catStyle(ev.category).text || '#3b82f6' }} />
+                        style={{ background: catStyle(ev.category).dot }} />
                       <div className="cal-panel-event-info">
                         <div className="cal-query-date">{String(ev.date).slice(0, 10)}</div>
                         <div className="cal-panel-event-name">{ev.title}</div>
@@ -354,8 +357,10 @@ export default function CalendarPage() {
                           {String(ev.start_time).slice(0,5)} – {String(ev.end_time).slice(0,5)}
                           &nbsp;·&nbsp;{ev.duration_minutes} min
                         </div>
-                        <span className={`badge ${catStyle(ev.category).badge ?? ''}`}
-                          style={{ marginTop: 4 }}>{ev.category}</span>
+                        <span className="badge" style={{ marginTop: 4 }}>
+                          <span className="badge-dot" style={{ background: catStyle(ev.category).dot }} />
+                          {ev.category}
+                        </span>
                       </div>
                     </div>
                   ))

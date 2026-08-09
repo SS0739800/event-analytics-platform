@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { apiFetch } from '../lib/api'
 import { invalidateCategoriesCache } from '../lib/categories'
+import Icon from './Icon'
 
 export default function CategoryModal({ categories, onClose, onSaved }) {
   const [cats, setCats]   = useState([...categories])
@@ -39,15 +40,15 @@ export default function CategoryModal({ categories, onClose, onSaved }) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-box" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <span className="modal-title">⚙ Manage Categories</span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <span className="modal-title"><Icon name="settings" />Manage Categories</span>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><Icon name="close" /></button>
         </div>
         <div style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="cat-list">
             {cats.map(c => (
               <div key={c} className="cat-chip">
                 <span>{c}</span>
-                <button className="cat-chip-del" onClick={() => remove(c)}>✕</button>
+                <button className="cat-chip-del" onClick={() => remove(c)} aria-label="Remove"><Icon name="close" size={12} /></button>
               </div>
             ))}
           </div>

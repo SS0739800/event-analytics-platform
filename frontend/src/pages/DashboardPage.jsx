@@ -16,13 +16,14 @@ import ICalModal from '../components/ICalModal'
 import CategoryModal from '../components/CategoryModal'
 import { useCategories } from '../lib/useCategories'
 import { invalidateCategoriesCache } from '../lib/categories'
+import Icon from '../components/Icon'
 
 const NAV = [
-  { id: 'overview',   icon: '▦',  label: 'Overview' },
-  { id: 'categories', icon: '⊞',  label: 'Categories' },
-  { id: 'time',       icon: '◷',  label: 'Time Analysis' },
-  { id: 'trends',     icon: '╱╲', label: 'Trends' },
-  { id: 'events',     icon: '≡',  label: 'Events' },
+  { id: 'overview',   icon: 'grid',     label: 'Overview' },
+  { id: 'categories', icon: 'layers',   label: 'Categories' },
+  { id: 'time',       icon: 'clock',    label: 'Time Analysis' },
+  { id: 'trends',     icon: 'trend',    label: 'Trends' },
+  { id: 'events',     icon: 'list',     label: 'Events' },
 ]
 
 function useAuthFetch(path, refreshKey) {
@@ -86,7 +87,7 @@ export default function DashboardPage() {
     <div className="app-layout">
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <div className="logo-mark">📊</div>
+          <div className="logo-mark" />
           <div className="logo-text">EventAnalytics<span className="logo-sub">PLATFORM</span></div>
         </div>
 
@@ -96,18 +97,18 @@ export default function DashboardPage() {
             <div key={id} className={`nav-item ${active === id ? 'active' : ''}`}
               onClick={() => scrollTo(id)} role="button" tabIndex={0}
               onKeyDown={e => e.key === 'Enter' && scrollTo(id)}>
-              <span className="nav-icon">{icon}</span>{label}
+              <span className="nav-icon"><Icon name={icon} /></span>{label}
             </div>
           ))}
           <div className="nav-item" role="button" tabIndex={0}
             onClick={() => navigate('/calendar')}
             onKeyDown={e => e.key === 'Enter' && navigate('/calendar')}>
-            <span className="nav-icon">📅</span>Calendar
+            <span className="nav-icon"><Icon name="calendar" /></span>Calendar
           </div>
           <div className="nav-item" role="button" tabIndex={0}
             onClick={() => setCatModalOpen(true)}
             onKeyDown={e => e.key === 'Enter' && setCatModalOpen(true)}>
-            <span className="nav-icon">🏷</span>Categories
+            <span className="nav-icon"><Icon name="tag" /></span>Categories
           </div>
         </nav>
 
@@ -116,7 +117,7 @@ export default function DashboardPage() {
           <div className="sidebar-user-email">{user.email}</div>
           <div className="nav-item" onClick={handleSignOut} role="button" tabIndex={0}
             onKeyDown={e => e.key === 'Enter' && handleSignOut()}
-            style={{ color: '#ef4444', padding: '6px 14px' }}>
+            style={{ color: 'var(--red)', padding: '6px 14px' }}>
             Sign out
           </div>
         </div>
@@ -130,11 +131,11 @@ export default function DashboardPage() {
           </div>
           <div className="top-bar-right">
             <button className="btn btn-outline" onClick={() => { setEditEvent(null); setModalOpen(true) }}>+ Add Event</button>
-            <button className="btn btn-ai" onClick={() => setAiModalOpen(true)}>✨ Add with AI</button>
-            <button className="btn btn-outline" onClick={() => setIcalOpen(true)}>📅 iCal</button>
-            <button className="btn btn-outline" onClick={() => exportWithAuth('/export/csv')}>↓ CSV</button>
-            <button className="btn btn-outline" onClick={() => exportWithAuth('/export/excel')}>↓ Excel</button>
-            <button className="btn btn-primary" onClick={() => exportWithAuth('/export/pdf')}>↓ PDF</button>
+            <button className="btn btn-ai" onClick={() => setAiModalOpen(true)}><Icon name="sparkle" />Add with AI</button>
+            <button className="btn btn-outline" onClick={() => setIcalOpen(true)}><Icon name="calendar" />iCal</button>
+            <button className="btn btn-outline" onClick={() => exportWithAuth('/export/csv')}><Icon name="download" />CSV</button>
+            <button className="btn btn-outline" onClick={() => exportWithAuth('/export/excel')}><Icon name="download" />Excel</button>
+            <button className="btn btn-primary" onClick={() => exportWithAuth('/export/pdf')}><Icon name="download" />PDF</button>
           </div>
         </header>
 
@@ -142,10 +143,10 @@ export default function DashboardPage() {
           <section id="overview" className="section">
             <div className="section-header"><span className="section-title">Overview</span></div>
             <div className="stats-grid">
-              <StatCard color="blue"   icon="📅" label="Total Events"       value={stats?.total_events} />
-              <StatCard color="green"  icon="⏱" label="Total Hours Logged"  value={stats?.total_hours != null ? `${stats.total_hours}h` : null} />
-              <StatCard color="orange" icon="🏷" label="Activity Categories" value={stats?.categories} />
-              <StatCard color="purple" icon="⏰" label="Avg Duration (min)"  value={stats?.avg_duration} />
+              <StatCard color="blue"   icon="calendar" label="Total Events"       value={stats?.total_events} />
+              <StatCard color="green"  icon="clock" label="Total Hours Logged"  value={stats?.total_hours != null ? `${stats.total_hours}h` : null} />
+              <StatCard color="orange" icon="tag" label="Activity Categories" value={stats?.categories} />
+              <StatCard color="purple" icon="clock" label="Avg Duration (min)"  value={stats?.avg_duration} />
             </div>
             <div className="grid cols-2" style={{ marginTop: 14 }}>
               <AIInsightsCard refreshKey={refreshKey} />
@@ -159,11 +160,11 @@ export default function DashboardPage() {
           <section id="categories" className="section">
             <div className="section-header"><span className="section-title">Categories</span></div>
             <div className="grid cols-2">
-              <CategoryCharts data={catStats} type="bar" />
-              <CategoryCharts data={catStats} type="pie" />
+              <CategoryCharts data={catStats} type="bar" categories={categories} />
+              <CategoryCharts data={catStats} type="pie" categories={categories} />
             </div>
             <div className="grid cols-1" style={{ marginTop: 14 }}>
-              <CategoryCharts data={catStats} type="duration" />
+              <CategoryCharts data={catStats} type="duration" categories={categories} />
             </div>
           </section>
 
@@ -179,7 +180,7 @@ export default function DashboardPage() {
             <div className="section-header"><span className="section-title">Trends</span></div>
             <div className="grid cols-2">
               <TrendChart data={trends} type="monthly" />
-              <TrendChart data={trends} type="category" />
+              <TrendChart data={trends} type="category" categories={categories} />
             </div>
           </section>
 

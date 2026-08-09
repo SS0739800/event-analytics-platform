@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
+import Icon from './Icon'
 
 export default function BulkPreviewModal({ events: rawEvents, onClose, onSaved }) {
   const [rows, setRows] = useState(null)        // validated events with conflict info
@@ -66,16 +67,16 @@ export default function BulkPreviewModal({ events: rawEvents, onClose, onSaved }
       <div className="modal-box bulk-preview-box" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <span className="modal-title">
-            {validating ? '✨ Checking for conflicts…'
-              : validateError ? '⚠ Validation error'
-              : `✨ ${toCreate.length} of ${rows.length} events ready`}
+            {validating ? <><Icon name="sparkle" />Checking for conflicts…</>
+              : validateError ? <><Icon name="warning" />Validation error</>
+              : <><Icon name="sparkle" />{toCreate.length} of {rows.length} events ready</>}
           </span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><Icon name="close" /></button>
         </div>
 
         {!validating && !validateError && unresolved.length > 0 && (
           <div className="bulk-conflict-banner">
-            ⚠ {unresolved.length} conflict{unresolved.length > 1 ? 's' : ''} need resolution — skip or replace each one below
+            <Icon name="warning" />{unresolved.length} conflict{unresolved.length > 1 ? 's' : ''} need resolution — skip or replace each one below
           </div>
         )}
 
@@ -116,8 +117,8 @@ export default function BulkPreviewModal({ events: rawEvents, onClose, onSaved }
                           : isSkipped
                             ? <span className="bulk-status-skipped">Skipped</span>
                             : hasConflict
-                              ? <span className="bulk-status-conflict" title={row.conflict}>⚠ Conflict</span>
-                              : <span className="bulk-status-ok">✓</span>}
+                              ? <span className="bulk-status-conflict" title={row.conflict}><Icon name="warning" size={12} />Conflict</span>
+                              : <span className="bulk-status-ok"><Icon name="check" size={14} /></span>}
                       </td>
                       <td>
                         {!validating && hasConflict && !isSkipped && (

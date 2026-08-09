@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
+import Icon from './Icon'
 
 export default function ICalModal({ onClose }) {
   const [url, setUrl]       = useState('')
@@ -35,8 +36,8 @@ export default function ICalModal({ onClose }) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-box" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <span className="modal-title">📅 Calendar Export</span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <span className="modal-title"><Icon name="calendar" />Calendar Export</span>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><Icon name="close" /></button>
         </div>
         <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
@@ -47,7 +48,7 @@ export default function ICalModal({ onClose }) {
               Download a snapshot of all your events as an <code>.ics</code> file and import it into Google Calendar, Apple Calendar, or Outlook.
             </div>
             <button className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={download}>
-              ↓ Download .ics
+              <Icon name="download" />Download .ics
             </button>
           </div>
 
@@ -66,7 +67,7 @@ export default function ICalModal({ onClose }) {
                   <input className="field-input" readOnly value={url}
                     style={{ fontSize: 11.5, fontFamily: 'monospace' }} />
                   <button className="btn btn-outline" onClick={copy} style={{ flexShrink: 0 }}>
-                    {copied ? '✓ Copied' : 'Copy'}
+                    {copied ? <><Icon name="check" size={13} />Copied</> : 'Copy'}
                   </button>
                 </div>
               )}

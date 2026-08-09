@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { apiFetch } from '../lib/api'
+import Icon from './Icon'
 
 const EXAMPLES = [
   'How many hours did I spend on Gym last month?',
@@ -34,7 +35,7 @@ export default function QueryPanel() {
     <div className="card query-panel">
       <div className="card-header">
         <div>
-          <div className="card-title">💬 Ask About Your Data</div>
+          <div className="card-title"><Icon name="chat" />Ask About Your Data</div>
           <div className="card-subtitle">Ask anything about your activity history</div>
         </div>
       </div>

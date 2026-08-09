@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { apiFetch } from '../lib/api'
 import { useCategories } from '../lib/useCategories'
 import { getCategoryStyle } from '../lib/categories'
+import Icon from './Icon'
 
 export default function EventsTable({ data, onEdit, onDeleted }) {
   const categories = useCategories()
@@ -76,18 +77,23 @@ export default function EventsTable({ data, onEdit, onDeleted }) {
             </tr>
           ) : (
             <tr key={event.id}>
-              <td style={{ color: '#64748b' }}>{String(event.date).slice(0, 10)}</td>
+              <td style={{ color: 'var(--text-sub)' }}>{String(event.date).slice(0, 10)}</td>
               <td style={{ fontWeight: 500 }}>
                 {event.title}
                 {event.series_id && <span className="series-dot" title="Part of a series">●</span>}
               </td>
-              <td><span className={`badge ${getCategoryStyle(event.category, categories).badge}`}>{event.category}</span></td>
-              <td style={{ color: '#64748b' }}>{String(event.start_time).slice(0, 5)} – {String(event.end_time).slice(0, 5)}</td>
+              <td>
+                <span className="badge">
+                  <span className="badge-dot" style={{ background: getCategoryStyle(event.category, categories).dot }} />
+                  {event.category}
+                </span>
+              </td>
+              <td style={{ color: 'var(--text-sub)' }}>{String(event.start_time).slice(0, 5)} – {String(event.end_time).slice(0, 5)}</td>
               <td>{event.duration_minutes} min</td>
               <td>
                 <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                  <button className="icon-btn" title="Edit" onClick={() => onEdit(event)}>✏️</button>
-                  <button className="icon-btn icon-btn-danger" title="Delete" onClick={() => setConfirmId(event.id)}>🗑️</button>
+                  <button className="icon-btn" title="Edit" onClick={() => onEdit(event)}><Icon name="edit" /></button>
+                  <button className="icon-btn icon-btn-danger" title="Delete" onClick={() => setConfirmId(event.id)}><Icon name="trash" /></button>
                 </div>
               </td>
             </tr>

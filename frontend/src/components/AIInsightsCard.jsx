@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
+import Icon from './Icon'
 
 export default function AIInsightsCard({ refreshKey }) {
   const [insights, setInsights] = useState(null)
@@ -22,7 +23,7 @@ export default function AIInsightsCard({ refreshKey }) {
     <div className="card ai-insights-card">
       <div className="card-header">
         <div>
-          <div className="card-title">✨ AI Insights</div>
+          <div className="card-title"><Icon name="sparkle" />AI Insights</div>
           <div className="card-subtitle">Powered by Claude</div>
         </div>
       </div>

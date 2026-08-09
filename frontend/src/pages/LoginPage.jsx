@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { setToken } from '../lib/api'
+import Icon from '../components/Icon'
 
 const SIGNED_OUT_REASONS = {
   idle: 'You were signed out after 30 minutes of inactivity.',
@@ -55,7 +56,7 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <div className="logo-mark">📊</div>
+          <div className="logo-mark" />
           <div className="logo-text">EventAnalytics<span className="logo-sub">PLATFORM</span></div>
         </div>
 
@@ -109,7 +110,7 @@ export default function LoginPage() {
             </form>
             <p className="auth-switch">
               <span style={{ cursor: 'pointer', color: 'var(--accent)' }} onClick={() => setStep('password')}>
-                ← Back
+                <Icon name="arrowLeft" size={13} />Back
               </span>
             </p>
           </>

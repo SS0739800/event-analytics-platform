@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
+import Icon from './Icon'
 
 export default function WeeklySummaryCard({ refreshKey }) {
   const [summary, setSummary] = useState(null)
@@ -18,7 +19,7 @@ export default function WeeklySummaryCard({ refreshKey }) {
     <div className="card weekly-summary-card">
       <div className="card-header">
         <div>
-          <div className="card-title">📆 This Week at a Glance</div>
+          <div className="card-title"><Icon name="calendar" />This Week at a Glance</div>
           <div className="card-subtitle">AI-generated weekly summary</div>
         </div>
       </div>

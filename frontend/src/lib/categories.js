@@ -1,4 +1,5 @@
 import { apiFetch } from './api'
+import { SERIES, OVERFLOW } from './chartTheme'
 
 export const DEFAULT_CATEGORIES = ['Academics', 'Gym', 'Sports', 'Cooking', 'Recreation']
 
@@ -15,26 +16,40 @@ export async function fetchCategories() {
 
 export function invalidateCategoriesCache() { _cache = null }
 
-// Colour palette — first 5 match the legacy hardcoded colours exactly
-const PALETTE = [
-  { bg: '#f0fdf4', text: '#059669', badge: 'green' },   // Academics
-  { bg: '#eff6ff', text: '#2563eb', badge: 'blue' },    // Gym
-  { bg: '#fffbeb', text: '#d97706', badge: 'orange' },  // Sports
-  { bg: '#fef2f2', text: '#dc2626', badge: 'red' },     // Cooking
-  { bg: '#f5f3ff', text: '#7c3aed', badge: 'purple' },  // Recreation
-  { bg: '#f0fdfa', text: '#0d9488', badge: 'teal' },
-  { bg: '#fdf4ff', text: '#a21caf', badge: 'pink' },
-  { bg: '#eef2ff', text: '#4338ca', badge: 'indigo' },
-  { bg: '#fefce8', text: '#b45309', badge: 'amber' },
-  { bg: '#fff1f2', text: '#be123c', badge: 'rose' },
-]
-
-// Maps default category names to their fixed palette index
+// Fixed slots for the built-in categories so their colour never moves, even
+// when custom categories are added around them.
 const DEFAULT_INDEX = { Academics: 0, Gym: 1, Sports: 2, Cooking: 3, Recreation: 4 }
 
+/**
+ * Badge/chip styling for a category.
+ *
+ * Chips are neutral with a coloured dot rather than tinted pills: the hue does
+ * identity work, the text stays readable ink, and the label means colour is
+ * never the only thing distinguishing two categories.
+ *
+ * `dot` matches what the charts use for the same category — both come from
+ * SERIES in chartTheme.js.
+ */
 export function getCategoryStyle(category, allCategories = DEFAULT_CATEGORIES) {
-  if (DEFAULT_INDEX[category] !== undefined) return PALETTE[DEFAULT_INDEX[category]]
-  const custom = allCategories.filter(c => DEFAULT_INDEX[c] === undefined)
+  return {
+    bg: '#f4f4f4',
+    text: '#0a0a0a',
+    dot: categoryColor(category, allCategories),
+    badge: 'neutral',
+  }
+}
+
+/** The data colour for a category — shared by charts and badges. */
+export function categoryColor(category, allCategories = DEFAULT_CATEGORIES) {
+  const fixed = DEFAULT_INDEX[category]
+  if (fixed !== undefined) return SERIES[fixed]
+
+  // Custom categories take the slots after the built-ins, in a stable order.
+  // Past the eighth they share the overflow grey — cycling the palette would
+  // hand two categories the same colour with nothing to separate them.
+  const custom = (allCategories || []).filter(c => DEFAULT_INDEX[c] === undefined)
   const i = custom.indexOf(category)
-  return PALETTE[5 + (i >= 0 ? i % 5 : 0)]
+  if (i === -1) return OVERFLOW
+  const slot = DEFAULT_CATEGORIES.length + i
+  return slot < SERIES.length ? SERIES[slot] : OVERFLOW
 }

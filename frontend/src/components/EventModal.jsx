@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 import { useCategories } from '../lib/useCategories'
+import Icon from './Icon'
 
 const EMPTY = { title: '', category: '', date: '', start_time: '', end_time: '', duration_minutes: '' }
 
@@ -111,14 +112,14 @@ export default function EventModal({ event, prefill, onClose, onSaved }) {
       <div className="modal-box" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <span className="modal-title">{event ? 'Edit Event' : 'Add Event'}</span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><Icon name="close" /></button>
         </div>
 
         {error && <div className="auth-error" style={{ margin: '0 20px 12px' }}>{error}</div>}
 
         {conflict && (
           <div className="conflict-banner">
-            <div className="conflict-banner-msg">⚠ {conflict.message}</div>
+            <div className="conflict-banner-msg"><Icon name="warning" />{conflict.message}</div>
             <div className="conflict-banner-actions">
               <button className="bulk-resolve-btn skip" onClick={() => setConflict(null)}>
                 Keep existing

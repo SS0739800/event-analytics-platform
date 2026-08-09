@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { apiFetch } from '../lib/api'
+import Icon from './Icon'
 
 export default function AIParseModal({ onClose, onParsed, onBulkParsed }) {
   const [text, setText] = useState('')
@@ -43,8 +44,8 @@ export default function AIParseModal({ onClose, onParsed, onBulkParsed }) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-box" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <span className="modal-title">✨ Add with AI</span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <span className="modal-title"><Icon name="sparkle" />Add with AI</span>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><Icon name="close" /></button>
         </div>
         <div className="ai-parse-body">
           <p className="ai-parse-hint">

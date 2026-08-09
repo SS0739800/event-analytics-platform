@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { setToken } from '../lib/api'
+import Icon from '../components/Icon'
 
 const STEPS = ['details', 'scan', 'verify', 'done']
 
@@ -59,14 +60,14 @@ export default function RegisterPage() {
     <div className="auth-page">
       <div className="auth-card" style={{ maxWidth: step === 'scan' ? 440 : 400 }}>
         <div className="auth-logo">
-          <div className="logo-mark">📊</div>
+          <div className="logo-mark" />
           <div className="logo-text">EventAnalytics<span className="logo-sub">PLATFORM</span></div>
         </div>
 
         <div className="reg-steps">
           {['Account', 'Scan QR', 'Verify', 'Done'].map((label, i) => (
             <div key={label} className={`reg-step ${i <= stepIndex ? 'active' : ''}`}>
-              <div className="reg-dot">{i < stepIndex ? '✓' : i + 1}</div>
+              <div className="reg-dot">{i < stepIndex ? <Icon name="check" size={13} /> : i + 1}</div>
               <span>{label}</span>
             </div>
           ))}
