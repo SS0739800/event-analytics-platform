@@ -1,15 +1,10 @@
 import json
-import os
 from datetime import date
 
-from groq import Groq
-from dotenv import load_dotenv
-
-load_dotenv()
+from src.ai.client import chat
 
 
 def parse_event_smart(text: str, categories: list[str] = None) -> list[dict]:
-    client = Groq(api_key=os.environ["GROQ_API_KEY"])
     today = date.today().isoformat()
     cat_list = ", ".join(categories) if categories else "Academics, Gym, Sports, Cooking, Recreation"
 
@@ -40,13 +35,7 @@ Rules:
 - Always pick the closest category from: {cat_list}
 - Always return a JSON array: [{{...}}] for one event, [{{...}}, {{...}}, ...] for many"""
 
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        max_tokens=2000,
-        messages=[{"role": "user", "content": prompt}],
-    )
-
-    raw = response.choices[0].message.content.strip()
+    raw = chat([{"role": "user", "content": prompt}], max_tokens=4000)
     start = raw.find("[")
     end = raw.rfind("]") + 1
     if start == -1 or end == 0 or end <= start:

@@ -32,6 +32,10 @@ services:
         sync: false
       - key: GROQ_API_KEY
         sync: false
+      # Optional second AI provider. Leave unset and the app uses Groq
+      # only; set it and Gemini takes over when Groq can't serve.
+      - key: GEMINI_API_KEY
+        sync: false
 
       # CORS_ORIGINS is intentionally unset: Flask serves the frontend on the
       # same origin, so no CORS headers are wanted. Set it only if you later

@@ -1,12 +1,7 @@
-import os
-from groq import Groq
-from dotenv import load_dotenv
-
-load_dotenv()
+from src.ai.client import chat
 
 
 def generate_insights(summary: dict) -> str:
-    client = Groq(api_key=os.environ["GROQ_API_KEY"])
 
     cat_lines = "\n".join(
         f"  - {cat}: {count} events"
@@ -26,9 +21,4 @@ Activity summary:
 
 Format: 3-4 bullet points, each 1-2 sentences. No headers, no intro sentence."""
 
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        max_tokens=400,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return response.choices[0].message.content.strip()
+    return chat([{"role": "user", "content": prompt}], max_tokens=900)

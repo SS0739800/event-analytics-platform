@@ -1,14 +1,8 @@
-import os
 import pandas as pd
-from groq import Groq
-from dotenv import load_dotenv
-
-load_dotenv()
+from src.ai.client import chat
 
 
 def answer_query(question: str, df: pd.DataFrame) -> str:
-    client = Groq(api_key=os.environ["GROQ_API_KEY"])
-
     if df.empty:
         return "You have no events logged yet. Add some events to start asking questions about your data."
 
@@ -49,18 +43,19 @@ Monthly breakdown:
 Individual events (most recent 300):
 {events_csv}"""
 
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        max_tokens=400,
-        messages=[
+    return chat(
+        [
             {
                 "role": "system",
                 "content": "You are a personal analytics assistant. Answer questions about the user's activity data concisely and accurately using the data provided. If the answer requires a calculation, show the result. If the data doesn't contain enough information to answer, say so clearly."
             },
             {
                 "role": "user",
-                "content": f"Data:\n{context}\n\nQuestion: {question}"
+                "content": f"Data:
+{context}
+
+Question: {question}"
             }
         ],
+        max_tokens=900,
     )
-    return response.choices[0].message.content.strip()

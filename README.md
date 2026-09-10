@@ -33,7 +33,7 @@ A full-stack personal activity analytics platform. Log events, explore interacti
 - bcrypt — password hashing
 - PyJWT — session tokens
 - pyotp + qrcode — TOTP / MFA
-- Groq API (Llama 3) — AI features
+- Groq API (gpt-oss, with model fallback) — AI features
 - pandas — analytics
 - ReportLab + openpyxl — PDF / Excel export
 
@@ -51,6 +51,7 @@ A full-stack personal activity analytics platform. Log events, explore interacti
 event-analytics-platform/
 ├── src/
 │   ├── ai/
+│   │   ├── client.py          # Shared Groq client + model fallback chain
 │   │   ├── insights.py        # AI productivity analysis
 │   │   ├── parser.py          # Natural language → event parser
 │   │   ├── query.py           # Natural-language Q&A over event data
@@ -177,6 +178,8 @@ GROQ_API_KEY=gsk_your-groq-key
 | `SUPABASE_SERVICE_KEY` | Supabase dashboard → Project Settings → API → `service_role` key |
 | `JWT_SECRET` | Any long random string (e.g. `openssl rand -hex 32`) |
 | `GROQ_API_KEY` | [console.groq.com](https://console.groq.com) → API Keys |
+| `GEMINI_API_KEY` | *Optional.* [aistudio.google.com](https://aistudio.google.com/apikey) → Get API key. Used only when Groq can't serve a request. |
+| `GROQ_MODEL` | *Optional.* Comma-separated model chain, tried in order. Overrides the default in `src/ai/client.py` — lets you fix a model outage from the host's env vars without a deploy. |
 
 > **Security:** Never expose `SUPABASE_SERVICE_KEY` or `JWT_SECRET` in the frontend. They live only in `.env` and are used exclusively by the Flask backend.
 
@@ -453,7 +456,23 @@ The platform prevents overlapping events automatically:
 
 ## AI Features
 
-All AI features use [Groq](https://groq.com) with `llama-3.3-70b-versatile` — free tier is sufficient for personal use.
+All AI features run through [Groq](https://groq.com) via `src/ai/client.py`, which tries a chain of models in order:
+
+1. `openai/gpt-oss-120b`
+2. `openai/gpt-oss-20b`
+3. `groq/compound`
+
+All three are on Groq's free tier (250K tokens/min, 1K requests/min). If one loses free-tier access the next is used automatically — which is what happened to `llama-3.3-70b-versatile`, moved to Groq's enterprise tier and returning a `model_not_found` 404 to free keys.
+
+If every Groq model fails and `GEMINI_API_KEY` is set, the request falls through to Gemini (`gemini-flash-latest` → `gemini-3.5-flash` → `gemini-flash-lite-latest`). The `-latest` aliases come first deliberately: Google repoints them at the current model, so unlike a pinned ID they can't go stale. The entire `gemini-2.5` family was already retired when this was wired up. If none of the three are live either, the client asks Gemini what it currently serves and retries.
+
+A failure advances to the next model when it's a *model* problem (404, retired, no access) or a *transient* one (503 high demand, 429 rate limit, timeout) — a spike on one model says nothing about the next. Config errors (bad key, permission denied) abort immediately, since no other model will fix them.
+
+Both chains are overridable without a redeploy: set `GROQ_MODEL` or `GEMINI_MODEL` to a comma-separated list, in priority order.
+
+Gemini is entirely optional. With no key set the app behaves exactly as it did before — Groq only.
+
+The `gpt-oss` models reason before answering, and those reasoning tokens count against `max_tokens`. The client sends `reasoning_effort="low"` to keep that overhead down, and treats an empty response as a failure worth falling through on — otherwise a budget spent entirely on reasoning shows the user a blank card.
 
 **Smart Event Entry**
 Type anything like:

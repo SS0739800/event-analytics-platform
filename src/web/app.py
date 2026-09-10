@@ -1,5 +1,7 @@
 import io
+import json
 import os
+import sys
 import tempfile
 from datetime import datetime, timezone
 from functools import wraps
@@ -18,6 +20,7 @@ from src.auth.tokens import (
     create_login_token, verify_login_token,
 )
 from src.auth.totp import get_qr_base64, verify_code
+from src.ai.client import AIUnavailable
 from src.db.events import fetch_events_df, create_event, update_event, delete_event, create_events_bulk, delete_series, check_overlap
 from src.db.pending import (
     create_pending, get_pending, delete_pending, is_expired, purge_expired_pending,
@@ -295,6 +298,28 @@ def api_delete_series(user_id, series_id):
 
 # ── AI ───────────────────────────────────────────────────────────────────────
 
+def _ai_error(err, action):
+    """Turn a provider exception into something a person can read.
+
+    The raw error used to be interpolated straight into the response, so the UI
+    showed things like "404 - {'error': {'message': 'The model ... does not
+    exist'}}". The detail belongs in the logs, not in front of the user.
+    """
+    print(f"[ai] {action} failed: {type(err).__name__}: {err}", file=sys.stderr)
+
+    if isinstance(err, AIUnavailable):
+        return jsonify({
+            "error": "AI features are temporarily unavailable. Please try again in a moment."
+        }), 503
+    if isinstance(err, (ValueError, json.JSONDecodeError)):
+        # The model replied, we just couldn't use it — usually a vague prompt.
+        return jsonify({
+            "error": "Couldn't understand that description. Try being more specific about the date and time."
+        }), 422
+    return jsonify({"error": f"Could not {action}. Please try again."}), 502
+
+
+
 @app.route("/api/insights")
 @require_auth
 def api_insights(user_id):
@@ -318,7 +343,10 @@ def api_insights(user_id):
     }
 
     from src.ai.insights import generate_insights
-    return jsonify({"insights": generate_insights(summary)})
+    try:
+        return jsonify({"insights": generate_insights(summary)})
+    except Exception as e:
+        return _ai_error(e, "generate insights")
 
 
 @app.route("/api/parse-event", methods=["POST"])
@@ -333,7 +361,7 @@ def api_parse_event(user_id):
         categories = get_categories(user_id)
         return jsonify(parse_event_smart(text, categories))
     except Exception as e:
-        return jsonify({"error": f"Could not parse: {e}"}), 422
+        return _ai_error(e, "parse that event")
 
 
 @app.route("/api/query", methods=["POST"])
@@ -348,7 +376,7 @@ def api_query(user_id):
     try:
         return jsonify({"answer": answer_query(question, df)})
     except Exception as e:
-        return jsonify({"error": f"Could not answer: {e}"}), 422
+        return _ai_error(e, "answer that question")
 
 
 @app.route("/api/weekly-summary")
@@ -359,7 +387,7 @@ def api_weekly_summary(user_id):
     try:
         return jsonify({"summary": generate_weekly_summary(df)})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return _ai_error(e, "build your weekly summary")
 
 
 # ── Categories ────────────────────────────────────────────────────────────────

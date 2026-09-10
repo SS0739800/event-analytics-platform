@@ -1,14 +1,9 @@
-import os
 import pandas as pd
 from datetime import date, timedelta
-from groq import Groq
-from dotenv import load_dotenv
-
-load_dotenv()
+from src.ai.client import chat
 
 
 def generate_weekly_summary(df: pd.DataFrame) -> str:
-    client = Groq(api_key=os.environ["GROQ_API_KEY"])
 
     today = date.today()
     week_start = today - timedelta(days=today.weekday())       # this Monday
@@ -50,9 +45,4 @@ Last week:
 
 Write only the summary paragraph. No headers, no bullet points."""
 
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        max_tokens=200,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return response.choices[0].message.content.strip()
+    return chat([{"role": "user", "content": prompt}], max_tokens=600)
