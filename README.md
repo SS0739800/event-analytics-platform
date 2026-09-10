@@ -33,7 +33,7 @@ A full-stack personal activity analytics platform. Log events, explore interacti
 - bcrypt — password hashing
 - PyJWT — session tokens
 - pyotp + qrcode — TOTP / MFA
-- Groq API (gpt-oss, with model fallback) — AI features
+- Groq API (`gpt-oss`) — AI features, with Gemini as a fallback provider
 - pandas — analytics
 - ReportLab + openpyxl — PDF / Excel export
 
@@ -51,7 +51,7 @@ A full-stack personal activity analytics platform. Log events, explore interacti
 event-analytics-platform/
 ├── src/
 │   ├── ai/
-│   │   ├── client.py          # Shared Groq client + model fallback chain
+│   │   ├── client.py          # Groq + Gemini clients, model fallback chain
 │   │   ├── insights.py        # AI productivity analysis
 │   │   ├── parser.py          # Natural language → event parser
 │   │   ├── query.py           # Natural-language Q&A over event data
@@ -130,6 +130,7 @@ event-analytics-platform/
 - Node.js 18+
 - A [Supabase](https://supabase.com) project (free tier is fine)
 - A [Groq](https://console.groq.com) API key (free tier, no credit card)
+- *Optional:* a [Google AI Studio](https://aistudio.google.com/apikey) key, used as an AI fallback if Groq is unavailable
 
 ---
 
@@ -170,6 +171,9 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_KEY=your-service-role-key
 JWT_SECRET=your-random-secret-string
 GROQ_API_KEY=gsk_your-groq-key
+
+# Optional — AI fallback if Groq can't serve a request
+GEMINI_API_KEY=your-gemini-key
 ```
 
 | Variable | Where to find it |
@@ -180,6 +184,7 @@ GROQ_API_KEY=gsk_your-groq-key
 | `GROQ_API_KEY` | [console.groq.com](https://console.groq.com) → API Keys |
 | `GEMINI_API_KEY` | *Optional.* [aistudio.google.com](https://aistudio.google.com/apikey) → Get API key. Used only when Groq can't serve a request. |
 | `GROQ_MODEL` | *Optional.* Comma-separated model chain, tried in order. Overrides the default in `src/ai/client.py` — lets you fix a model outage from the host's env vars without a deploy. |
+| `GEMINI_MODEL` | *Optional.* Same idea for the Gemini chain. |
 
 > **Security:** Never expose `SUPABASE_SERVICE_KEY` or `JWT_SECRET` in the frontend. They live only in `.env` and are used exclusively by the Flask backend.
 
@@ -298,6 +303,7 @@ The build needs both Node (to compile the frontend) and Python (to run it). A pl
    | `SUPABASE_SERVICE_KEY` | `service_role` key — backend only, never the frontend |
    | `JWT_SECRET` | Changing it invalidates every existing session |
    | `GROQ_API_KEY` | |
+   | `GEMINI_API_KEY` | Optional. Without it production runs Groq-only — working, but with no cross-provider fallback |
 
    `TRUST_PROXY=1` is already set in `render.yaml`; `load_dotenv()` no-ops when there's no `.env`, so platform env vars are picked up as-is.
 5. Deploy, then verify in this order — each step exercises something the previous one doesn't:
@@ -342,7 +348,7 @@ Either way, open `http://localhost:5000` — not 5173. Vite isn't involved.
 
 ### Not yet addressed
 
-- **No rate limiting** on `/auth/login`, so it's brute-forceable, and the AI routes have no per-user cap on your Groq quota. `flask-limiter` is the fix.
+- **No rate limiting** on `/auth/login`, so it's brute-forceable, and the AI routes have no per-user cap on your Groq or Gemini quota. `flask-limiter` is the fix.
 - **`tests/` is empty** — there is no automated test suite, so every verification above is manual.
 
 ---
@@ -466,13 +472,21 @@ All three are on Groq's free tier (250K tokens/min, 1K requests/min). If one los
 
 If every Groq model fails and `GEMINI_API_KEY` is set, the request falls through to Gemini (`gemini-flash-latest` → `gemini-3.5-flash` → `gemini-flash-lite-latest`). The `-latest` aliases come first deliberately: Google repoints them at the current model, so unlike a pinned ID they can't go stale. The entire `gemini-2.5` family was already retired when this was wired up. If none of the three are live either, the client asks Gemini what it currently serves and retries.
 
-A failure advances to the next model when it's a *model* problem (404, retired, no access) or a *transient* one (503 high demand, 429 rate limit, timeout) — a spike on one model says nothing about the next. Config errors (bad key, permission denied) abort immediately, since no other model will fix them.
-
 Both chains are overridable without a redeploy: set `GROQ_MODEL` or `GEMINI_MODEL` to a comma-separated list, in priority order.
 
 Gemini is entirely optional. With no key set the app behaves exactly as it did before — Groq only.
 
 The `gpt-oss` models reason before answering, and those reasoning tokens count against `max_tokens`. The client sends `reasoning_effort="low"` to keep that overhead down, and treats an empty response as a failure worth falling through on — otherwise a budget spent entirely on reasoning shows the user a blank card.
+
+**When a request advances to the next model.** Model problems (404, retired, no access) and transient ones (503 high demand, 429 rate limit, timeout) both move down the chain — a capacity spike on one model says nothing about the next. Config errors (bad key, 401/403) abort immediately, since no other model will fix them.
+
+**What the user sees on failure.** Provider errors used to be interpolated straight into the response, so the UI showed raw JSON like `404 - {'error': {'message': 'The model ... does not exist'}}`. `_ai_error()` in `src/web/app.py` now logs the detail and returns a plain message instead:
+
+| Cause | Response |
+|---|---|
+| Every model at every provider failed | 503 — "AI features are temporarily unavailable" |
+| Model replied, output unusable | 422 — "Couldn't understand that description" |
+| Anything else | 502 — "Could not <action>. Please try again." |
 
 **Smart Event Entry**
 Type anything like:
